@@ -1,0 +1,36 @@
+{
+  "name": "regional-ai-enterprise-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "clsx": "^1.2.1",
+    "lucide-react": "^0.220.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.43.9",
+    "react-router-dom": "^6.30.2",
+    "recharts": "^2.15.4",
+    "tailwind-merge": "^1.14.0",
+    "zod": "^3.21.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.11",
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/node": "^18.15.11",
+    "@types/react": "^18.0.28",
+    "@types/react-dom": "^18.0.11",
+    "@types/recharts": "^1.8.24",
+    "@vitejs/plugin-react": "^3.1.0",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^4.9.5",
+    "vite": "^4.2.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  }
+}
