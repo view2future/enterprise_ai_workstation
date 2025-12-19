@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #1e40af;
+            --secondary-color: #3b82f6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --p0-color: #dc2626; /* 红色 - P0 */
+            --p1-color: #f59e0b; /* 黄色 - P1 */
+            --p2-color: #6b7280; /* 灰色 - P2 */
+            --飞桨-color: #3b82f6; /* 蓝色 - 飞桨 */
+            --文心-color: #10b981; /* 绿色 - 文心 */
+            --认证级-color: #3b82f6; /* 蓝色 - 认证级 */
+            --优选级-color: #10b981; /* 绿色 - 优选级 */
+            --无等级-color: #6b7280; /* 灰色 - 无 */
+        }
+        
+        body {
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .priority-badge {
+            font-weight: bold;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+        }
+        
+        .priority-p0 {
+            background-color: var(--p0-color);
+            color: white;
+        }
+        
+        .priority-p1 {
+            background-color: var(--p1-color);
+            color: white;
+        }
+        
+        .priority-p2 {
+            background-color: var(--p2-color);
+            color: white;
+        }
+        
+        .tech-badge {
+            font-weight: bold;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            color: white;
+        }
+        
+        .tech-飞桨 {
+            background-color: var(--飞桨-color);
+        }
+        
+        .tech-文心 {
+            background-color: var(--文心-color);
+        }
+        
+        .level-badge {
+            font-weight: bold;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            color: white;
+        }
+        
+        .level-认证级 {
+            background-color: var(--认证级-color);
+        }
+        
+        .level-优选级 {
+            background-color: var(--优选级-color);
+        }
+        
+        .level-无 {
+            background-color: var(--无等级-color);
+        }
+        
+        .card {
+            transition: transform 0.2s;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .table th {
+            background-color: #f8fafc;
+            font-weight: 600;
+        }
+        
+        .search-container {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card {
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .loading {
+            display: none;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .ellipsis {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .clickable {
+            cursor: pointer;
+        }
+        
+        .detail-section {
+            display: none;
+        }
+        
+        .detail-section.show {
+            display: block;
+        }
+        
+        .industry-tag {
+            display: inline-block;
+            background-color: #e2e8f0;
+            color: #4a5568;
+            padding: 0.25rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            margin-right: 0.25rem;
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1><i class="fas fa-building"></i> 企业管理系统</h1>
+                    <p class="mb-0">AI技术生态合作伙伴管理平台</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <button class="btn btn-light me-2" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i> 刷新
+                    </button>
+                    <button class="btn btn-success" onclick="showAddModal()">
+                        <i class="fas fa-plus"></i> 添加企业
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏统计 -->
+            <div class="col-lg-3">
+                <div class="mb-4">
+                    <div class="card stat-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="text-muted mb-1">企业总数</h6>
+                                    <h2 class="mb-0" id="totalEnterprises">0</h2>
+                                </div>
+                                <div class="bg-primary rounded-circle p-3 d-flex align-items-center justify-content-center">
+                                    <i class="fas fa-building text-white fa-lg"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>优先级分布</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="priorityStats"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="fas fa-microchip me-2"></i>技术分布</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="techStats"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="fas fa-clock me-2"></i>最近更新</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush" id="recentUpdates">
+                                <!-- 动态加载 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主内容区 -->
+            <div class="col-lg-9">
+                <!-- 搜索和筛选 -->
+                <div class="search-container mb-4">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">搜索</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="searchInput" placeholder="企业名称、背景、场景等...">
+                                <button class="btn btn-outline-secondary" type="button" onclick="searchEnterprises()">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label class="form-label">飞桨/文心</label>
+                            <select class="form-select" id="techFilter">
+                                <option value="">全部</option>
+                                <option value="飞桨">飞桨</option>
+                                <option value="文心">文心</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label class="form-label">优先级</label>
+                            <select class="form-select" id="priorityFilter">
+                                <option value="">全部</option>
+                                <option value="P0">P0</option>
+                                <option value="P1">P1</option>
+                                <option value="P2">P2</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label class="form-label">伙伴等级</label>
+                            <select class="form-select" id="levelFilter">
+                                <option value="">全部</option>
+                                <option value="认证级">认证级</option>
+                                <option value="优选级">优选级</option>
+                                <option value="无">无</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label class="form-label">线索季度</label>
+                            <select class="form-select" id="quarterFilter">
+                                <option value="">全部</option>
+                                <option value="2025Q1">2025Q1</option>
+                                <option value="2025Q2">2025Q2</option>
+                                <option value="2025Q3">2025Q3</option>
+                                <option value="2025Q4">2025Q4</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-12">
+                            <div class="d-flex justify-content-end">
+                                <button class="btn btn-primary me-2" onclick="searchEnterprises()">
+                                    <i class="fas fa-filter me-1"></i>筛选
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="resetFilters()">
+                                    重置
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 企业列表 -->
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h5 class="mb-0"><i class="fas fa-list me-2"></i>企业列表</h5>
+                            </div>
+                            <div class="col-auto">
+                                <span class="text-muted" id="resultCount">加载中...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>企业名称</th>
+                                        <th>技术</th>
+                                        <th>优先级</th>
+                                        <th>伙伴等级</th>
+                                        <th>注册资本(万)</th>
+                                        <th>参保人数</th>
+                                        <th>地区</th>
+                                        <th>更新时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="enterpriseList">
+                                    <tr>
+                                        <td colspan="9" class="text-center py-4">
+                                            <div class="spinner-border" role="status">
+                                                <span class="visually-hidden">加载中...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- 分页 -->
+                        <div class="card-footer bg-white">
+                            <nav aria-label="企业列表分页">
+                                <ul class="pagination justify-content-center mb-0" id="pagination">
+                                    <!-- 动态加载 -->
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查看详情模态框 -->
+    <div class="modal fade" id="detailModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailModalLabel">企业详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="enterpriseDetail">
+                        <!-- 动态内容 -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" onclick="showEditModal()">编辑</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑模态框 -->
+    <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑企业</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editEnterpriseForm">
+                        <input type="hidden" id="editId">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">企业名称 *</label>
+                                    <input type="text" class="form-control" id="edit企业名称" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">飞桨/文心</label>
+                                    <select class="form-select" id="edit飞桨文心">
+                                        <option value="">请选择</option>
+                                        <option value="飞桨">飞桨</option>
+                                        <option value="文心">文心</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">线索入库时间</label>
+                                    <input type="text" class="form-control" id="edit线索入库时间" placeholder="格式: 2025Q4">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">伙伴等级</label>
+                                    <select class="form-select" id="edit伙伴等级">
+                                        <option value="">请选择</option>
+                                        <option value="认证级">认证级</option>
+                                        <option value="优选级">优选级</option>
+                                        <option value="无">无</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">生态AI产品</label>
+                            <input type="text" class="form-control" id="edit生态AI产品" placeholder="格式: 2025-10 智能客服产品">
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">优先级</label>
+                                    <select class="form-select" id="edit优先级">
+                                        <option value="">请选择</option>
+                                        <option value="P0">P0</option>
+                                        <option value="P1">P1</option>
+                                        <option value="P2">P2</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">地区</label>
+                                    <input type="text" class="form-control" id="editbase" placeholder="如: 成都">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">注册资本 (万)</label>
+                                    <input type="number" class="form-control" id="edit注册资本">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">参保人数</label>
+                                    <input type="number" class="form-control" id="edit参保人数">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">企业背景</label>
+                            <textarea class="form-control" id="edit企业背景" rows="3" placeholder="50-100字描述企业核心业务与合作基础"></textarea>
+                            <div class="form-text">当前字数: <span id="backgroundCharCount">0</span>/100</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">行业</label>
+                            <input type="text" class="form-control" id="edit行业" placeholder="多个行业用逗号分隔">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">任务方向</label>
+                            <input type="text" class="form-control" id="edit任务方向" placeholder="如: 智能问答、OCR、目标检测">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">联系人信息</label>
+                            <input type="text" class="form-control" id="edit联系人信息" placeholder="格式: 张三（产品总监）138xxxx1234">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">使用场景</label>
+                            <textarea class="form-control" id="edit使用场景" rows="4" placeholder="详细描述企业的AI使用场景"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="updateEnterprise()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加企业模态框 -->
+    <div class="modal fade" id="addModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加企业</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addEnterpriseForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">企业名称 *</label>
+                                    <input type="text" class="form-control" id="add企业名称" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">飞桨/文心</label>
+                                    <select class="form-select" id="add飞桨文心">
+                                        <option value="">请选择</option>
+                                        <option value="飞桨">飞桨</option>
+                                        <option value="文心">文心</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">线索入库时间</label>
+                                    <input type="text" class="form-control" id="add线索入库时间" placeholder="格式: 2025Q4">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">伙伴等级</label>
+                                    <select class="form-select" id="add伙伴等级">
+                                        <option value="">请选择</option>
+                                        <option value="认证级">认证级</option>
+                                        <option value="优选级">优选级</option>
+                                        <option value="无">无</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">生态AI产品</label>
+                            <input type="text" class="form-control" id="add生态AI产品" placeholder="格式: 2025-10 智能客服产品">
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">优先级</label>
+                                    <select class="form-select" id="add优先级">
+                                        <option value="">请选择</option>
+                                        <option value="P0">P0</option>
+                                        <option value="P1">P1</option>
+                                        <option value="P2">P2</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">地区</label>
+                                    <input type="text" class="form-control" id="addbase" placeholder="如: 成都">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">注册资本 (万)</label>
+                                    <input type="number" class="form-control" id="add注册资本">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">参保人数</label>
+                                    <input type="number" class="form-control" id="add参保人数">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">企业背景</label>
+                            <textarea class="form-control" id="add企业背景" rows="3" placeholder="50-100字描述企业核心业务与合作基础"></textarea>
+                            <div class="form-text">当前字数: <span id="addBackgroundCharCount">0</span>/100</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">行业</label>
+                            <input type="text" class="form-control" id="add行业" placeholder="多个行业用逗号分隔">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">任务方向</label>
+                            <input type="text" class="form-control" id="add任务方向" placeholder="如: 智能问答、OCR、目标检测">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">联系人信息</label>
+                            <input type="text" class="form-control" id="add联系人信息" placeholder="格式: 张三（产品总监）138xxxx1234">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">使用场景</label>
+                            <textarea class="form-control" id="add使用场景" rows="4" placeholder="详细描述企业的AI使用场景"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-success" onclick="createEnterprise()">添加</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 进展模态框 -->
+    <div class="modal fade" id="progressModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加进展</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="progressEnterpriseId">
+                    <div class="mb-3">
+                        <label class="form-label">进展类型</label>
+                        <select class="form-select" id="progressType">
+                            <option value="本周进展">本周进展</option>
+                            <option value="上周进展">上周进展</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">进展内容</label>
+                        <textarea class="form-control" id="progressContent" rows="4" placeholder="详细描述本周或上周的工作进展..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="addEnterpriseProgress()">添加</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // 全局变量
+        let currentPage = 1;
+        let totalItems = 0;
+        let itemsPerPage = 20;
+        let currentEnterprise = null;
+
+        // API基础URL
+        const API_BASE = 'http://localhost:3000/api';
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStatistics();
+            loadEnterprises();
+            
+            // 添加字符计数监听器
+            document.getElementById('edit企业背景').addEventListener('input', function() {
+                updateCharCount(this, 'backgroundCharCount', 100);
+            });
+            
+            document.getElementById('add企业背景').addEventListener('input', function() {
+                updateCharCount(this, 'addBackgroundCharCount', 100);
+            });
+        });
+
+        // 更新字符计数
+        function updateCharCount(textarea, countElementId, maxLength) {
+            const length = textarea.value.length;
+            document.getElementById(countElementId).textContent = length;
+            
+            if (length > maxLength) {
+                textarea.style.borderColor = 'var(--danger-color)';
+            } else {
+                textarea.style.borderColor = '';
+            }
+        }
+
+        // 加载企业列表
+        async function loadEnterprises(page = 1) {
+            showLoading(true);
+            
+            try {
+                const search = document.getElementById('searchInput').value;
+                const 飞桨文心 = document.getElementById('techFilter').value;
+                const 优先级 = document.getElementById('priorityFilter').value;
+                const 伙伴等级 = document.getElementById('levelFilter').value;
+                const 线索入库时间 = document.getElementById('quarterFilter').value;
+
+                const params = new URLSearchParams({
+                    page: page,
+                    limit: itemsPerPage,
+                    search: search,
+                    飞桨文心: 飞桨文心,
+                    优先级: 优先级,
+                    伙伴等级: 伙伴等级,
+                    线索入库时间: 线索入库时间
+                });
+
+                const response = await fetch(`${API_BASE}/enterprises?${params}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    displayEnterprises(result.data);
+                    updatePagination(result.pagination);
+                    currentPage = page;
+                } else {
+                    showError('加载企业列表失败: ' + result.message);
+                }
+            } catch (error) {
+                console.error('加载企业列表错误:', error);
+                showError('加载企业列表失败: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // 显示企业列表
+        function displayEnterprises(enterprises) {
+            const tbody = document.getElementById('enterpriseList');
+            if (!enterprises || enterprises.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4">没有找到企业数据</td></tr>';
+                document.getElementById('resultCount').textContent = '共 0 条记录';
+                return;
+            }
+
+            tbody.innerHTML = enterprises.map(enterprise => `
+                <tr class="fade-in">
+                    <td class="ellipsis" style="max-width: 200px;" title="${escapeHtml(enterprise.企业名称)}">
+                        <strong>${escapeHtml(enterprise.企业名称)}</strong>
+                    </td>
+                    <td>
+                        ${enterprise.飞桨_文心 ? `<span class="tech-badge tech-${escapeHtml(enterprise.飞桨_文心)}">${escapeHtml(enterprise.飞桨_文心)}</span>` : '-'}
+                    </td>
+                    <td>
+                        ${enterprise.优先级 ? `<span class="priority-badge priority-${escapeHtml(enterprise.优先级)}">${escapeHtml(enterprise.优先级)}</span>` : '-'}
+                    </td>
+                    <td>
+                        ${enterprise.伙伴等级 ? `<span class="level-badge level-${escapeHtml(enterprise.伙伴等级)}">${escapeHtml(enterprise.伙伴等级)}</span>` : '-'}
+                    </td>
+                    <td>${enterprise.注册资本 ? formatNumber(enterprise.注册资本) : '-'}</td>
+                    <td>${enterprise.参保人数 ? formatNumber(enterprise.参保人数) : '-'}</td>
+                    <td>${enterprise.base || '-'}</td>
+                    <td>${formatDateTime(enterprise.线索更新时间)}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-primary btn-sm" onclick="showDetail(${enterprise.id})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="showProgressModal(${enterprise.id})">
+                                <i class="fas fa-comment-medical"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            totalItems = enterprises.length > 0 ? enterprises[0].total_count || enterprises.length : 0;
+            document.getElementById('resultCount').textContent = `共 ${totalItems} 条记录`;
+        }
+
+        // 更新分页
+        function updatePagination(pagination) {
+            const paginationElement = document.getElementById('pagination');
+            
+            if (pagination.totalPages <= 1) {
+                paginationElement.innerHTML = '';
+                return;
+            }
+
+            let paginationHTML = '';
+
+            // 上一页
+            if (pagination.currentPage > 1) {
+                paginationHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadEnterprises(${pagination.currentPage - 1})">上一页</a></li>`;
+            }
+
+            // 页码
+            const startPage = Math.max(1, pagination.currentPage - 2);
+            const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+
+            if (startPage > 1) {
+                paginationHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadEnterprises(1)">1</a></li>`;
+                if (startPage > 2) {
+                    paginationHTML += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `<li class="page-item ${i === pagination.currentPage ? 'active' : ''}">`;
+                paginationHTML += `<a class="page-link" href="#" onclick="loadEnterprises(${i})">${i}</a>`;
+                paginationHTML += '</li>';
+            }
+
+            if (endPage < pagination.totalPages) {
+                if (endPage < pagination.totalPages - 1) {
+                    paginationHTML += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                }
+                paginationHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadEnterprises(${pagination.totalPages})">${pagination.totalPages}</a></li>`;
+            }
+
+            // 下一页
+            if (pagination.currentPage < pagination.totalPages) {
+                paginationHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadEnterprises(${pagination.currentPage + 1})">下一页</a></li>`;
+            }
+
+            paginationElement.innerHTML = paginationHTML;
+        }
+
+        // 加载统计信息
+        async function loadStatistics() {
+            try {
+                const response = await fetch(`${API_BASE}/statistics`);
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('totalEnterprises').textContent = result.data.totalEnterprises;
+                    
+                    // 显示优先级统计
+                    const priorityContainer = document.getElementById('priorityStats');
+                    priorityContainer.innerHTML = result.data.priorityStats.map(stat => `
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="priority-badge priority-${stat.优先级}">${stat.优先级}</span>
+                            <span>${stat.count} 家 (${stat.percentage}%)</span>
+                        </div>
+                    `).join('');
+
+                    // 显示技术统计
+                    const techContainer = document.getElementById('techStats');
+                    techContainer.innerHTML = result.data.飞桨文心Stats.map(stat => `
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="tech-badge tech-${stat.飞桨_文心}">${stat.飞桨_文心}</span>
+                            <span>${stat.count} 家 (${stat.percentage}%)</span>
+                        </div>
+                    `).join('');
+
+                    // 显示最近更新
+                    const recentContainer = document.getElementById('recentUpdates');
+                    recentContainer.innerHTML = result.data.recentEnterprises.map(enterprise => `
+                        <a class="list-group-item list-group-item-action" href="#" onclick="showDetail(${enterprise.id})">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">${escapeHtml(enterprise.企业名称)}</h6>
+                                <small>${formatDateTime(enterprise.线索更新时间)}</small>
+                            </div>
+                            <div class="d-flex gap-2 mt-1">
+                                ${enterprise.优先级 ? `<span class="priority-badge priority-${enterprise.优先级}" style="font-size: 0.6rem;">${enterprise.优先级}</span>` : ''}
+                                ${enterprise.飞桨文心 ? `<span class="tech-badge tech-${enterprise.飞桨文心}" style="font-size: 0.6rem;">${enterprise.飞桨文心}</span>` : ''}
+                            </div>
+                        </a>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('加载统计信息错误:', error);
+            }
+        }
+
+        // 显示企业详情
+        async function showDetail(id) {
+            try {
+                const response = await fetch(`${API_BASE}/enterprises/${id}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    currentEnterprise = result.data;
+                    displayEnterpriseDetail(result.data);
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+                    modal.show();
+                } else {
+                    showError('获取企业详情失败: ' + result.message);
+                }
+            } catch (error) {
+                console.error('获取企业详情错误:', error);
+                showError('获取企业详情失败: ' + error.message);
+            }
+        }
+
+        // 显示企业详情内容
+        function displayEnterpriseDetail(enterprise) {
+            let industryTags = '';
+            if (enterprise.行业 && Array.isArray(enterprise.行业)) {
+                industryTags = enterprise.行业.map(ind => 
+                    `<span class="industry-tag">${escapeHtml(ind)}</span>`
+                ).join('');
+            } else if (enterprise.行业) {
+                industryTags = `<span class="industry-tag">${escapeHtml(enterprise.行业)}</span>`;
+            }
+
+            const latestProgress = enterprise.latestProgress && enterprise.latestProgress.length > 0 ? 
+                enterprise.latestProgress[0] : null;
+            const previousProgress = enterprise.latestProgress && enterprise.latestProgress.length > 1 ? 
+                enterprise.latestProgress[1] : null;
+
+            document.getElementById('enterpriseDetail').innerHTML = `
+                <div class="row">
+                    <div class="col-md-8">
+                        <h4>${escapeHtml(enterprise.企业名称)}</h4>
+                        <div class="d-flex gap-2 mb-3">
+                            ${enterprise.飞桨_文心 ? `<span class="tech-badge tech-${escapeHtml(enterprise.飞桨_文心)}">${escapeHtml(enterprise.飞桨_文心)}</span>` : ''}
+                            ${enterprise.优先级 ? `<span class="priority-badge priority-${escapeHtml(enterprise.优先级)}">${escapeHtml(enterprise.优先级)}</span>` : ''}
+                            ${enterprise.伙伴等级 ? `<span class="level-badge level-${escapeHtml(enterprise.伙伴等级)}">${escapeHtml(enterprise.伙伴等级)}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <h6>更新时间</h6>
+                        <p class="mb-0">${formatDateTime(enterprise.线索更新时间)}</p>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td width="30%"><strong>线索入库时间</strong></td>
+                                    <td>${enterprise.线索入库时间 || '-'}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>注册资本</strong></td>
+                                    <td>${enterprise.注册资本 ? formatNumber(enterprise.注册资本) + ' 万' : '-'}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>参保人数</strong></td>
+                                    <td>${enterprise.参保人数 ? formatNumber(enterprise.参保人数) + ' 人' : '-'}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>地区</strong></td>
+                                    <td>${enterprise.base || '-'}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>任务方向</strong></td>
+                                    <td>${enterprise.任务方向 || '-'}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td width="30%"><strong>生态AI产品</strong></td>
+                                    <td>${enterprise.生态AI产品 || '-'}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>联系人信息</strong></td>
+                                    <td>${enterprise.联系人信息 || '-'}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>行业</strong></td>
+                                    <td>${industryTags || '-'}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5>企业背景</h5>
+                        <p class="text-muted">${enterprise.企业背景 || '-'}</p>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5>使用场景</h5>
+                        <p class="text-muted">${enterprise.使用场景 || '-'}</p>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5>工作进展</h5>
+                            <button class="btn btn-sm btn-outline-primary" onclick="showProgressModal(${enterprise.id})">
+                                <i class="fas fa-plus me-1"></i>添加进展
+                            </button>
+                        </div>
+                        
+                        ${latestProgress ? `
+                        <div class="card mb-3">
+                            <div class="card-header bg-success text-white">
+                                <i class="fas fa-calendar-check me-1"></i>
+                                ${escapeHtml(latestProgress.progress_type)} - ${formatDateTime(latestProgress.update_time)}
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">${escapeHtml(latestProgress.content)}</p>
+                            </div>
+                        </div>
+                        ` : '<p class="text-muted">暂无进展记录</p>'}
+                        
+                        ${previousProgress ? `
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <i class="fas fa-calendar me-1"></i>
+                                ${escapeHtml(previousProgress.progress_type)} - ${formatDateTime(previousProgress.update_time)}
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">${escapeHtml(previousProgress.content)}</p>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 显示编辑模态框
+        function showEditModal() {
+            if (!currentEnterprise) return;
+            
+            document.getElementById('editId').value = currentEnterprise.id;
+            document.getElementById('edit企业名称').value = currentEnterprise.企业名称 || '';
+            document.getElementById('edit飞桨文心').value = currentEnterprise.飞桨_文心 || '';
+            document.getElementById('edit线索入库时间').value = currentEnterprise.线索入库时间 || '';
+            document.getElementById('edit伙伴等级').value = currentEnterprise.伙伴等级 || '';
+            document.getElementById('edit生态AI产品').value = currentEnterprise.生态AI产品 || '';
+            document.getElementById('edit优先级').value = currentEnterprise.优先级 || '';
+            document.getElementById('editbase').value = currentEnterprise.base || '';
+            document.getElementById('edit注册资本').value = currentEnterprise.注册资本 || '';
+            document.getElementById('edit参保人数').value = currentEnterprise.参保人数 || '';
+            document.getElementById('edit企业背景').value = currentEnterprise.企业背景 || '';
+            document.getElementById('edit行业').value = Array.isArray(currentEnterprise.行业) ? currentEnterprise.行业.join(', ') : currentEnterprise.行业 || '';
+            document.getElementById('edit任务方向').value = currentEnterprise.任务方向 || '';
+            document.getElementById('edit联系人信息').value = currentEnterprise.联系人信息 || '';
+            document.getElementById('edit使用场景').value = currentEnterprise.使用场景 || '';
+
+            updateCharCount(document.getElementById('edit企业背景'), 'backgroundCharCount', 100);
+
+            const modal = new bootstrap.Modal(document.getElementById('editModal'));
+            modal.show();
+        }
+
+        // 显示添加模态框
+        function showAddModal() {
+            // 重置表单
+            document.getElementById('addEnterpriseForm').reset();
+            document.getElementById('addBackgroundCharCount').textContent = '0';
+            
+            const modal = new bootstrap.Modal(document.getElementById('addModal'));
+            modal.show();
+        }
+
+        // 显示进展模态框
+        function showProgressModal(enterpriseId) {
+            document.getElementById('progressEnterpriseId').value = enterpriseId;
+            document.getElementById('progressContent').value = '';
+            document.getElementById('progressType').value = '本周进展';
+            
+            const modal = new bootstrap.Modal(document.getElementById('progressModal'));
+            modal.show();
+        }
+
+        // 添加企业进展
+        async function addEnterpriseProgress() {
+            const enterpriseId = document.getElementById('progressEnterpriseId').value;
+            const content = document.getElementById('progressContent').value;
+            const progress_type = document.getElementById('progressType').value;
+
+            if (!content.trim()) {
+                showError('请输入进展内容');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/enterprises/${enterpriseId}/progress`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, progress_type })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // 关闭模态框
+                    bootstrap.Modal.getInstance(document.getElementById('progressModal')).hide();
+                    
+                    // 重新加载详情
+                    await showDetail(enterpriseId);
+                    showSuccess('进展记录添加成功');
+                } else {
+                    showError('添加进展失败: ' + result.message);
+                }
+            } catch (error) {
+                console.error('添加进展错误:', error);
+                showError('添加进展失败: ' + error.message);
+            }
+        }
+
+        // 创建企业
+        async function createEnterprise() {
+            const formData = {
+                企业名称: document.getElementById('add企业名称').value,
+                飞桨文心: document.getElementById('add飞桨文心').value || null,
+                线索入库时间: document.getElementById('add线索入库时间').value || null,
+                伙伴等级: document.getElementById('add伙伴等级').value || null,
+                生态AI产品: document.getElementById('add生态AI产品').value || null,
+                优先级: document.getElementById('add优先级').value || null,
+                base: document.getElementById('addbase').value || null,
+                注册资本: document.getElementById('add注册资本').value ? parseInt(document.getElementById('add注册资本').value) : null,
+                参保人数: document.getElementById('add参保人数').value ? parseInt(document.getElementById('add参保人数').value) : null,
+                企业背景: document.getElementById('add企业背景').value || null,
+                行业: document.getElementById('add行业').value ? document.getElementById('add行业').value.split(',').map(item => item.trim()).filter(item => item) : null,
+                任务方向: document.getElementById('add任务方向').value || null,
+                联系人信息: document.getElementById('add联系人信息').value || null,
+                使用场景: document.getElementById('add使用场景').value || null
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/enterprises`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // 关闭模态框
+                    bootstrap.Modal.getInstance(document.getElementById('addModal')).hide();
+                    
+                    // 重新加载列表
+                    loadEnterprises(currentPage);
+                    loadStatistics();
+                    showSuccess('企业添加成功');
+                } else {
+                    showError('添加企业失败: ' + result.message);
+                }
+            } catch (error) {
+                console.error('添加企业错误:', error);
+                showError('添加企业失败: ' + error.message);
+            }
+        }
+
+        // 更新企业
+        async function updateEnterprise() {
+            const id = document.getElementById('editId').value;
+            const formData = {
+                企业名称: document.getElementById('edit企业名称').value,
+                飞桨文心: document.getElementById('edit飞桨文心').value || null,
+                线索入库时间: document.getElementById('edit线索入库时间').value || null,
+                伙伴等级: document.getElementById('edit伙伴等级').value || null,
+                生态AI产品: document.getElementById('edit生态AI产品').value || null,
+                优先级: document.getElementById('edit优先级').value || null,
+                base: document.getElementById('editbase').value || null,
+                注册资本: document.getElementById('edit注册资本').value ? parseInt(document.getElementById('edit注册资本').value) : null,
+                参保人数: document.getElementById('edit参保人数').value ? parseInt(document.getElementById('edit参保人数').value) : null,
+                企业背景: document.getElementById('edit企业背景').value || null,
+                行业: document.getElementById('edit行业').value ? document.getElementById('edit行业').value.split(',').map(item => item.trim()).filter(item => item) : null,
+                任务方向: document.getElementById('edit任务方向').value || null,
+                联系人信息: document.getElementById('edit联系人信息').value || null,
+                使用场景: document.getElementById('edit使用场景').value || null
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/enterprises/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // 关闭模态框
+                    bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                    
+                    // 重新加载列表和详情
+                    loadEnterprises(currentPage);
+                    loadStatistics();
+                    if (currentEnterprise && currentEnterprise.id == id) {
+                        await showDetail(id);
+                    }
+                    showSuccess('企业更新成功');
+                } else {
+                    showError('更新企业失败: ' + result.message);
+                }
+            } catch (error) {
+                console.error('更新企业错误:', error);
+                showError('更新企业失败: ' + error.message);
+            }
+        }
+
+        // 删除企业
+        async function deleteEnterprise(id) {
+            if (!confirm('确定要删除这个企业吗？此操作不可撤销。')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/enterprises/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    loadEnterprises(currentPage);
+                    loadStatistics();
+                    showSuccess('企业删除成功');
+                } else {
+                    showError('删除企业失败: ' + result.message);
+                }
+            } catch (error) {
+                console.error('删除企业错误:', error);
+                showError('删除企业失败: ' + error.message);
+            }
+        }
+
+        // 搜索企业
+        function searchEnterprises() {
+            loadEnterprises(1);
+        }
+
+        // 重置筛选器
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('techFilter').value = '';
+            document.getElementById('priorityFilter').value = '';
+            document.getElementById('levelFilter').value = '';
+            document.getElementById('quarterFilter').value = '';
+            loadEnterprises(1);
+        }
+
+        // 刷新数据
+        function refreshData() {
+            loadEnterprises(currentPage);
+            loadStatistics();
+            showSuccess('数据已刷新');
+        }
+
+        // 工具函数
+        function escapeHtml(text) {
+            if (typeof text !== 'string') {
+                return text;
+            }
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function formatNumber(num) {
+            if (num == null) return '-';
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        function formatDateTime(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-CN');
+        }
+
+        function showLoading(show) {
+            const elements = document.querySelectorAll('.loading');
+            elements.forEach(el => {
+                if (show) {
+                    el.classList.add('show');
+                } else {
+                    el.classList.remove('show');
+                }
+            });
+        }
+
+        function showSuccess(message) {
+            // 简单的成功提示
+            alert(message);
+        }
+
+        function showError(message) {
+            // 简单的错误提示
+            alert('错误: ' + message);
+        }
+    </script>
+</body>
+</html>
