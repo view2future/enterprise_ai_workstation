@@ -4,67 +4,69 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Modern tech-inspired color palette - Light Mode */
+    --background: 217 33% 98%;  /* #F8FAFC - very light blue-gray */
+    --foreground: 221 39% 11%;  /* #0F172A - dark blue-gray */
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 217 33% 90%;      /* #E2E8F0 - light gray-blue */
+    --muted-foreground: 221 19% 42%; /* #64748B - medium gray-blue */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 217 33% 98%;   /* #F8FAFC - very light blue-gray */
+    --popover-foreground: 221 39% 11%; /* #0F172A - dark blue-gray */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 217 33% 98%;      /* #F8FAFC - very light blue-gray */
+    --card-foreground: 221 39% 11%; /* #0F172A - dark blue-gray */
 
-    --border: 220 13% 20%;
-    --input: 220 13% 20%;
+    --border: 220 14% 79%;    /* #CBD5E1 - medium blue-gray */
+    --input: 220 14% 79%;     /* #CBD5E1 - medium blue-gray */
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 204 86% 49%;   /* #0EA5E9 - bright blue */
+    --primary-foreground: 217 33% 98%; /* #F8FAFC - light background for primary text */
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 220 14% 79%; /* #CBD5E1 - medium blue-gray */
+    --secondary-foreground: 221 39% 11%; /* #0F172A - dark blue-gray */
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 204 66% 79%;    /* #7DD3FC - light blue accent */
+    --accent-foreground: 221 39% 11%; /* #0F172A - dark blue-gray */
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 67%; /* #EF4444 - bright red */
+    --destructive-foreground: 217 33% 98%; /* #F8FAFC - light background */
 
-    --ring: 220 13% 20%;
+    --ring: 204 86% 49%;      /* #0EA5E9 - bright blue to match primary */
 
     --radius: 0.25rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Modern tech-inspired color palette - Dark Mode */
+    --background: 221 39% 11%;  /* #0F172A - dark blue-gray */
+    --foreground: 217 33% 98%;  /* #F8FAFC - light blue-gray */
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 218 19% 20%;      /* #334155 - dark blue-gray */
+    --muted-foreground: 219 12% 58%; /* #94A3B8 - light blue-gray */
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 221 39% 11%;   /* #0F172A - dark blue-gray */
+    --popover-foreground: 217 33% 98%; /* #F8FAFC - light blue-gray */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 221 39% 11%;      /* #0F172A - dark blue-gray */
+    --card-foreground: 217 33% 98%; /* #F8FAFC - light blue-gray */
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
+    --border: 218 19% 20%;    /* #334155 - dark blue-gray */
+    --input: 218 19% 20%;     /* #334155 - dark blue-gray */
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 202 100% 60%;  /* #38BDF8 - bright sky blue */
+    --primary-foreground: 221 39% 11%; /* #0F172A - dark blue-gray */
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 218 19% 20%; /* #334155 - dark blue-gray */
+    --secondary-foreground: 217 33% 94%; /* #E2E8F0 - light blue-gray */
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 214 60% 58%;    /* #60A5FA - medium blue */
+    --accent-foreground: 217 33% 98%; /* #F8FAFC - light blue-gray */
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 13 100% 72%; /* #F87171 - light red */
+    --destructive-foreground: 221 39% 11%; /* #0F172A - dark blue-gray */
 
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 202 100% 60%;     /* #38BDF8 - bright sky blue */
   }
 }
 
@@ -79,6 +81,8 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
     @apply text-base; /* Ensure base text size */
+    /* 红背景实验：如果能看到红色，说明CSS链路正常但Tailwind未编译 */
+    /* background: red !important; */
   }
 
   /* Consistent icon sizing */

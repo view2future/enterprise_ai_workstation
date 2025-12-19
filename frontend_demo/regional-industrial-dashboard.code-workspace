@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../../regional-industrial-dashboard"
+		},
+		{
+			"path": "../../tinydesk_regional_research"
+		}
+	],
+	"settings": {
+		"git.ignoreLimitWarning": true
+	}
+}
