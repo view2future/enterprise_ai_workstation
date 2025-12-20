@@ -274,6 +274,87 @@ const SettingsPage: React.FC = () => {
             </NeubrutalCard>
           )}
 
+          {activeTab === 'account' && (
+            <NeubrutalCard>
+              <h2 className="text-lg font-semibold mb-4">账户设置</h2>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <NeubrutalSelect label="语言 (Language)">
+                      <option value="zh">简体中文</option>
+                      <option value="en">English</option>
+                    </NeubrutalSelect>
+                  </div>
+                  <div>
+                    <NeubrutalSelect label="时区 (Timezone)">
+                      <option value="Asia/Shanghai">北京时间 (UTC+8)</option>
+                      <option value="UTC">协调世界时 (UTC)</option>
+                    </NeubrutalSelect>
+                  </div>
+                </div>
+                
+                <div className="p-4 border-2 border-gray-800 rounded-lg bg-red-50">
+                  <h3 className="text-md font-bold text-red-800 mb-2">危险区域</h3>
+                  <p className="text-sm text-red-600 mb-4">删除您的账户是永久性的，且无法撤销。请谨慎操作。</p>
+                  <NeubrutalButton variant="danger">
+                    注销账户
+                  </NeubrutalButton>
+                </div>
+                
+                <div className="pt-4">
+                  <NeubrutalButton variant="primary">
+                    <Save size={18} className="mr-2" />
+                    保存账户设置
+                  </NeubrutalButton>
+                </div>
+              </div>
+            </NeubrutalCard>
+          )}
+
+          {activeTab === 'system' && (
+            <NeubrutalCard>
+              <h2 className="text-lg font-semibold mb-4">系统设置</h2>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <NeubrutalInput
+                    label="系统名称"
+                    defaultValue="企业数据管理平台"
+                  />
+                  <NeubrutalInput
+                    label="系统版本"
+                    defaultValue="v1.0.0"
+                    disabled
+                  />
+                </div>
+                
+                <div>
+                  <NeubrutalInput
+                    label="API 接口地址"
+                    defaultValue="http://localhost:3001/api"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border-2 border-gray-800 rounded-lg">
+                  <div>
+                    <p className="font-medium">维护模式</p>
+                    <p className="text-sm text-gray-600">启用维护模式将暂停普通用户的访问</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+
+                <div className="pt-4">
+                  <NeubrutalButton variant="primary">
+                    <Save size={18} className="mr-2" />
+                    保存系统配置
+                  </NeubrutalButton>
+                </div>
+              </div>
+            </NeubrutalCard>
+          )}
+
           {activeTab === 'users' && user?.role === 'admin' && (
             <UserManagement currentUserRole={user.role} />
           )}
