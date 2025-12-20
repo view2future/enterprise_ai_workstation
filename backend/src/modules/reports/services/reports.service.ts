@@ -1,532 +1,118 @@
-import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import * as Excel from 'excel4node';
-import * as fs from 'fs';
+import * as xl from 'excel4node';
 import * as path from 'path';
-import moment from 'moment';
-import { Report, ReportStatus, ReportFormat, ReportType } from '../../../entities/report.entity';
+import * as fs from 'fs';
 
 @Injectable()
 export class ReportsService {
   constructor(private prisma: PrismaService) {}
 
-  async createReport(createReportDto: {
-    title: string;
-    type: ReportType;
-    format: ReportFormat;
-    description?: string;
-    filters?: any;
-    configuration?: any;
-    created_by?: string;
-  }): Promise<Report> {
-    const reportData = await this.prisma.report.create({
-      data: {
-        title: createReportDto.title,
-        type: createReportDto.type,
-        format: createReportDto.format,
-        description: createReportDto.description,
-        filters: createReportDto.filters,
-        configuration: createReportDto.configuration,
-        createdBy: createReportDto.created_by,
-        status: ReportStatus.PENDING,
-        dataCount: 0,
-        progress: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+  async findAll() {
+    return this.prisma.report.findMany({
+      orderBy: { createdAt: 'desc' },
     });
+  }
 
-    const report: Report = {
-      ...reportData,
-      created_at: reportData.createdAt,
-      updated_at: reportData.updatedAt,
-      completed_at: reportData.completedAt,
-      errorMessage: reportData.errorMessage,
-      dataCount: reportData.dataCount,
-    } as any;
-
-    // Process the report asynchronously
-    this.processReport(report.id).catch(error => {
-      console.error(`Error processing report ${report.id}:`, error);
+  async findOne(id: number) {
+    const report = await this.prisma.report.findUnique({
+      where: { id },
     });
-
+    if (!report) throw new NotFoundException('报告未找到');
     return report;
   }
 
-  async processReport(reportId: number) {
-    try {
-      const report = await this.prisma.report.findUnique({ where: { id: reportId } });
-      if (!report) {
-        throw new NotFoundException(`Report with ID ${reportId} not found`);
-      }
+  async generateReport(dto: any) {
+    const { title, type, description, filters, modules = ['summary', 'details'] } = dto;
 
-      // Update status to processing
-      await this.prisma.report.update({
-        where: { id: reportId },
-        data: { 
-          status: ReportStatus.PROCESSING,
-          progress: 5,
-          updatedAt: new Date(),
-        },
-      });
-
-      // Fetch data based on report type and filters
-      let query: any = { where: { status: 'active' } };
-      
-      // Apply filters if provided
-      if (report.filters) {
-        const { 
-          search, 
-          飞桨_文心, 
-          优先级, 
-          伙伴等级, 
-          线索入库时间,
-          注册资本_min,
-          注册资本_max,
-          参保人数_min,
-          参保人数_max,
-          base
-        } = report.filters as any;
-
-        if (search) {
-          query.where.OR = [
-            { 企业名称: { contains: search, mode: 'insensitive' } },
-            { 企业背景: { contains: search, mode: 'insensitive' } },
-            { 使用场景: { contains: search, mode: 'insensitive' } },
-            { 生态AI产品: { contains: search, mode: 'insensitive' } },
-            { 联系人信息: { contains: search, mode: 'insensitive' } },
-          ];
-        }
-
-        if (飞桨_文心) {
-          query.where.飞桨_文心 = 飞桨_文心;
-        }
-
-        if (优先级) {
-          query.where.优先级 = 优先级;
-        }
-
-        if (伙伴等级) {
-          query.where.伙伴等级 = 伙伴等级;
-        }
-
-        if (线索入库时间) {
-          query.where.线索入库时间 = 线索入库时间;
-        }
-
-        if (base) {
-          query.where.base = base;
-        }
-
-        if (注册资本_min !== undefined) {
-          query.where.注册资本 = { gte: 注册资本_min };
-        }
-
-        if (注册资本_max !== undefined) {
-          const rcFilter = query.where.注册资本 || {};
-          rcFilter.lte = 注册资本_max;
-          query.where.注册资本 = rcFilter;
-        }
-
-        if (参保人数_min !== undefined) {
-          query.where.参保人数 = { gte: 参保人数_min };
-        }
-
-        if (参保人数_max !== undefined) {
-          const ecFilter = query.where.参保人数 || {};
-          ecFilter.lte = 参保人数_max;
-          query.where.参保人数 = ecFilter;
-        }
-      }
-
-    const enterprises = await this.prisma.enterprise.findMany(query);
-    const dataCount = enterprises.length;
-
-    // 转换 BigInt 为 Number 防止 Excel 库报错
-    const serializedEnterprises = enterprises.map(ent => ({
-      ...ent,
-      avgMonthlyApiCalls: ent.avgMonthlyApiCalls ? Number(ent.avgMonthlyApiCalls) : 0,
-      registeredCapital: ent.registeredCapital ? Number(ent.registeredCapital) : 0
-    }));
-
-    await this.prisma.report.update({
-      where: { id: reportId },
-      data: { 
-        progress: 25,
-        dataCount,
-        updatedAt: new Date(),
+    const report = await this.prisma.report.create({
+      data: {
+        title: String(title),
+        type: String(type),
+        format: 'EXCEL',
+        status: 'generating',
+        description: description || '',
+        filters: filters ? JSON.stringify(filters) : null,
+        createdAt: new Date(),
       },
     });
 
-    // Generate report based on format
-    let filePath: string;
-    let fileName: string;
+    const enterprises = await this.prisma.enterprise.findMany({
+      where: { status: 'active', ...(this.getPeriodFilter(type, filters)) }
+    });
 
-    switch (report.format) {
-      case ReportFormat.EXCEL:
-        const excelResult = await this.generateExcelReport(report, serializedEnterprises);
-        filePath = excelResult.filePath;
-        fileName = excelResult.fileName;
-        break;
-        case ReportFormat.CSV:
-          const csvResult = await this.generateCsvReport(report, enterprises);
-          filePath = csvResult.filePath;
-          fileName = csvResult.fileName;
-          break;
-        case ReportFormat.PDF:
-          const pdfResult = await this.generatePdfReport(report, enterprises);
-          filePath = pdfResult.filePath;
-          fileName = pdfResult.fileName;
-          break;
-        case ReportFormat.JSON:
-          const jsonResult = await this.generateJsonReport(report, enterprises);
-          filePath = jsonResult.filePath;
-          fileName = jsonResult.fileName;
-          break;
-        default:
-          throw new BadRequestException(`Unsupported report format: ${report.format}`);
-      }
+    this.assembleIntelligence(report.id, enterprises, modules);
+    return report;
+  }
 
-      await this.prisma.report.update({
-        where: { id: reportId },
-        data: {
-          status: ReportStatus.COMPLETED,
-          progress: 100,
-          filePath,
-          fileName,
-          completedAt: new Date(),
-          updatedAt: new Date(),
-        },
+  private getPeriodFilter(type: string, manualFilters: any) {
+    if (manualFilters && Object.keys(manualFilters).length > 0) return manualFilters;
+    const now = new Date();
+    const start = new Date();
+    switch (type) {
+      case 'WEEKLY': start.setDate(now.getDate() - 7); break;
+      case 'MONTHLY': start.setMonth(now.getMonth() - 1); break;
+      case 'QUARTERLY': start.setMonth(now.getMonth() - 3); break;
+      case 'YEARLY': start.setFullYear(now.getFullYear() - 1); break;
+      default: return {};
+    }
+    return { createdAt: { gte: start } };
+  }
+
+  private async assembleIntelligence(reportId: number, enterprises: any[], modules: string[]) {
+    try {
+      const wb = new xl.Workbook();
+      const ws = wb.addWorksheet('INTEL');
+      
+      const style = wb.createStyle({
+        font: { color: '#000000', size: 12, bold: true },
+      });
+
+      ws.cell(1, 1).string('ID').style(style);
+      ws.cell(1, 2).string('企业名称').style(style);
+      ws.cell(1, 3).string('战力等级').style(style);
+      ws.cell(1, 4).string('核心技术').style(style);
+      ws.cell(1, 5).string('月均API').style(style);
+      ws.cell(1, 6).string('所属地区').style(style);
+
+      enterprises.forEach((e, i) => {
+        const row = i + 2;
+        ws.cell(row, 1).number(e.id);
+        ws.cell(row, 2).string(e.enterpriseName || '-');
+        ws.cell(row, 3).string(e.priority || '-');
+        ws.cell(row, 4).string(e.feijiangWenxin || '-');
+        ws.cell(row, 5).number(Number(e.avgMonthlyApiCalls || 0));
+        ws.cell(row, 6).string(e.base || '-');
+      });
+
+      const fileName = `INTEL_${Date.now()}.xlsx`;
+      const uploadDir = path.join(process.cwd(), 'uploads', 'reports');
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      const filePath = path.join(uploadDir, fileName);
+
+      wb.write(filePath, async (err, stats) => {
+        if (err) {
+          await this.prisma.report.update({ where: { id: reportId }, data: { status: 'failed' } });
+        } else {
+          await this.prisma.report.update({
+            where: { id: reportId },
+            data: { filePath: fileName, status: 'ready', updatedAt: new Date() },
+          });
+        }
       });
     } catch (error) {
-      console.error(`Error processing report ${reportId}:`, error);
-      await this.prisma.report.update({
-        where: { id: reportId },
-        data: {
-          status: ReportStatus.FAILED,
-          progress: 100,
-          errorMessage: error.message,
-          completedAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
-      throw error;
+      await this.prisma.report.update({ where: { id: reportId }, data: { status: 'failed' } });
     }
   }
 
-  private async generateExcelReport(report: any, enterprises: any[]): Promise<{ filePath: string; fileName: string }> {
-    const workbook = new Excel.Workbook();
-    
-    // 工作表 1：战略决策概要 (Executive Summary)
-    const summarySheet = workbook.addWorksheet('战略决策概要');
-    summarySheet.cell(1, 1).string('指标项目').style({ font: { bold: true } });
-    summarySheet.cell(1, 2).string('当前数值').style({ font: { bold: true } });
-    
-    summarySheet.cell(2, 1).string('覆盖企业总数');
-    summarySheet.cell(2, 2).number(enterprises.length);
-    
-    const p0Count = enterprises.filter(e => e.priority === 'P0').length;
-    summarySheet.cell(3, 1).string('P0级核心伙伴');
-    summarySheet.cell(3, 2).number(p0Count);
-    
-    const successCount = enterprises.filter(e => e.aiImplementationStage === '全面生产').length;
-    summarySheet.cell(4, 1).string('已投产AI方案数');
-    summarySheet.cell(4, 2).number(successCount);
-
-    // 工作表 2：企业明细详单 (Enterprise Details)
-    const worksheet = workbook.addWorksheet('企业明细详单');
-    // ... 原有 headers 逻辑保持不变
-    let headers: string[];
-    switch (report.type) {
-      case ReportType.SUMMARY:
-        headers = ['ID', '企业名称', '优先级', '飞桨/文心', '大模型版本', 'API月调用量', '落地阶段', '地区'];
-        break;
-      case ReportType.DETAILED:
-        headers = [
-          'ID', '企业名称', '统一社会信用代码', '法定代表人', '优先级', '伙伴等级', 
-          '文心版本', '飞桨深度', 'API月调用量', '落地阶段', 
-          '是否高新', '是否专精特新', '行业', '任务方向', '联系人信息'
-        ];
-        break;
-      case ReportType.AI_USAGE:
-        headers = ['ID', '企业名称', '文心版本', '飞桨模型', 'API月调用', '算力模式', '落地阶段', '提示词模板数'];
-        break;
-      case ReportType.PARTNER:
-        headers = ['ID', '企业名称', '伙伴能级', '项目身份', '认证证书', '联合方案', '活动参与', '是否百度投资'];
-        break;
-      default:
-        headers = ['ID', '企业名称', '优先级', '地区', '注册资本', '参保人数'];
-    }
-
-    // Set headers
-    headers.forEach((header, index) => {
-      const column = index + 1;
-      worksheet.cell(1, column).string(header).style({
-        font: { bold: true, color: '#FFFFFF' },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: '#1e293b' } 
-      });
-    });
-
-    // Fill data rows
-    enterprises.forEach((enterprise, rowIndex) => {
-      const row = rowIndex + 2;
-      worksheet.cell(row, 1).number(enterprise.id);
-      worksheet.cell(row, 2).string(enterprise.enterpriseName || '');
-      
-      if (report.type === ReportType.SUMMARY) {
-        worksheet.cell(row, 3).string(enterprise.priority || '');
-        worksheet.cell(row, 4).string(enterprise.feijiangWenxin || '');
-        worksheet.cell(row, 5).string(enterprise.ernieModelType || '-');
-        worksheet.cell(row, 6).number(Number(enterprise.avgMonthlyApiCalls || 0));
-        worksheet.cell(row, 7).string(enterprise.aiImplementationStage || '-');
-        worksheet.cell(row, 8).string(enterprise.base || '');
-      } else if (report.type === ReportType.DETAILED) {
-        worksheet.cell(row, 3).string(enterprise.unifiedSocialCreditCode || '-');
-        worksheet.cell(row, 4).string(enterprise.legalRepresentative || '-');
-        worksheet.cell(row, 5).string(enterprise.priority || '');
-        worksheet.cell(row, 6).string(enterprise.partnerLevel || '');
-        worksheet.cell(row, 7).string(enterprise.ernieModelType || '-');
-        worksheet.cell(row, 8).string(enterprise.paddleUsageLevel || '-');
-        worksheet.cell(row, 9).number(Number(enterprise.avgMonthlyApiCalls || 0));
-        worksheet.cell(row, 10).string(enterprise.aiImplementationStage || '-');
-        worksheet.cell(row, 11).string(enterprise.isHighTech ? '是' : '否');
-        worksheet.cell(row, 12).string(enterprise.isSpecialized ? '是' : '否');
-        worksheet.cell(row, 13).string(JSON.stringify(enterprise.industry || ''));
-        worksheet.cell(row, 14).string(enterprise.taskDirection || '');
-        worksheet.cell(row, 15).string(enterprise.contactInfo || '');
-      } else if (report.type === ReportType.PARTNER) {
-        worksheet.cell(row, 3).string(enterprise.partnerLevel || '');
-        worksheet.cell(row, 4).string(enterprise.partnerProgramType || '-');
-        worksheet.cell(row, 5).string(Array.isArray(enterprise.baiduCertificates) ? enterprise.baiduCertificates.join(',') : '-');
-        worksheet.cell(row, 6).string(Array.isArray(enterprise.jointSolutions) ? enterprise.jointSolutions.join(',') : '-');
-        worksheet.cell(row, 7).string(Array.isArray(enterprise.eventParticipation) ? `${enterprise.eventParticipation.length} 次` : '0');
-        worksheet.cell(row, 8).string(enterprise.isBaiduVenture ? '是' : '否');
-      } else {
-        worksheet.cell(row, 3).string(enterprise.priority || '');
-        worksheet.cell(row, 4).string(enterprise.base || '');
-        worksheet.cell(row, 5).number(Number(enterprise.registeredCapital || 0));
-        worksheet.cell(row, 6).number(Number(enterprise.employeeCount || 0));
-      }
-    });
-
-    // Set column widths
-    for (let i = 1; i <= headers.length; i++) {
-      worksheet.column(i).setWidth(20);
-    }
-
-    // Generate file name
-    const timestamp = moment().format('YYYYMMDD_HHmmss');
-    const fileName = `${report.title.replace(/\s+/g, '_')}_${timestamp}.xlsx`;
-    const filePath = path.join(__dirname, '../../../reports', fileName);
-
-    // Ensure directory exists
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
-    // Generate file
-    await workbook.write(filePath);
-
-    return { filePath, fileName };
+  async remove(id: number) {
+    return this.prisma.report.delete({ where: { id } });
   }
 
-  private async generateCsvReport(report: any, enterprises: any[]): Promise<{ filePath: string; fileName: string }> {
-    // Create CSV content
-    let headers: string[];
-    switch (report.type) {
-      case ReportType.SUMMARY:
-        headers = ['ID', '企业名称', '飞桨_文心', '优先级', '伙伴等级', '注册资本(万)', '参保人数', '地区'];
-        break;
-      case ReportType.DETAILED:
-        headers = ['ID', '企业名称', '飞桨_文心', '线索入库时间', '伙伴等级', '生态AI产品', '优先级', '地区', '注册资本', '参保人数', '企业背景', '行业', '任务方向', '联系人信息', '使用场景'];
-        break;
-      case ReportType.PRIORITY:
-        headers = ['ID', '企业名称', '优先级', '飞桨_文心', '伙伴等级', '注册资本(万)', '参保人数'];
-        break;
-      case ReportType.AI_USAGE:
-        headers = ['ID', '企业名称', '飞桨_文心', '生态AI产品', '使用场景', '优先级', '伙伴等级'];
-        break;
-      case ReportType.REGIONAL:
-        headers = ['ID', '企业名称', '地区', '飞桨_文心', '优先级', '注册资本(万)', '参保人数'];
-        break;
-      case ReportType.PARTNER:
-        headers = ['ID', '企业名称', '伙伴等级', '飞桨_文心', '优先级', '注册资本(万)', '参保人数'];
-        break;
-      default:
-        headers = ['ID', '企业名称', '飞桨_文心', '优先级', '伙伴等级', '注册资本', '参保人数', '地区'];
-    }
-
-    let csvContent = headers.join(',') + '\n';
-
-    enterprises.forEach(enterprise => {
-      const row = [
-        enterprise.id,
-        `"${enterprise.企业名称 || ''}"`,
-        `"${enterprise.飞桨_文心 || ''}"`,
-        `"${enterprise.优先级 || ''}"`,
-        `"${enterprise.伙伴等级 || ''}"`,
-        enterprise.注册资本 ? (Number(enterprise.注册资本) / 10000).toFixed(2) : '',
-        enterprise.参保人数 || '',
-        `"${enterprise.base || ''}"`
-      ].join(',');
-      csvContent += row + '\n';
-    });
-
-    // Generate file name
-    const timestamp = moment().format('YYYYMMDD_HHmmss');
-    const fileName = `${report.title.replace(/\s+/g, '_')}_${timestamp}.csv`;
-    const filePath = path.join(__dirname, '../../../reports', fileName);
-
-    // Ensure directory exists
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
-    // Write file
-    fs.writeFileSync(filePath, csvContent);
-
-    return { filePath, fileName };
-  }
-
-  private async generateJsonReport(report: any, enterprises: any[]): Promise<{ filePath: string; fileName: string }> {
-    const reportData = {
-      title: report.title,
-      type: report.type,
-      format: report.format,
-      description: report.description,
-      filters: report.filters,
-      configuration: report.configuration,
-      generatedAt: new Date().toISOString(),
-      dataCount: enterprises.length,
-      data: enterprises
-    };
-
-    // Generate file name
-    const timestamp = moment().format('YYYYMMDD_HHmmss');
-    const fileName = `${report.title.replace(/\s+/g, '_')}_${timestamp}.json`;
-    const filePath = path.join(__dirname, '../../../reports', fileName);
-
-    // Ensure directory exists
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
-    // Write file
-    fs.writeFileSync(filePath, JSON.stringify(reportData, null, 2));
-
-    return { filePath, fileName };
-  }
-
-  private async generatePdfReport(report: any, enterprises: any[]): Promise<{ filePath: string; fileName: string }> {
-    // For now, we'll just create a simple placeholder PDF
-    // In a real implementation, you'd want to use a proper PDF generation library
-    
-    // Generate file name
-    const timestamp = moment().format('YYYYMMDD_HHmmss');
-    const fileName = `${report.title.replace(/\s+/g, '_')}_${timestamp}.pdf`;
-    const filePath = path.join(__dirname, '../../../reports', fileName);
-
-    // Ensure directory exists
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
-    // Create a simple placeholder
-    fs.writeFileSync(filePath, 'PDF placeholder content');
-
-    return { filePath, fileName };
-  }
-
-  async findAllReports(filters: { 
-    type?: ReportType; 
-    status?: ReportStatus; 
-    created_by?: string;
-    page?: number;
-    limit?: number;
-  } = {}) {
-    const { type, status, created_by, page = 0, limit = 20 } = filters;
-    
-    const whereClause: any = {};
-    
-    if (type) {
-      whereClause.type = type;
-    }
-    
-    if (status) {
-      whereClause.status = status;
-    }
-    
-    if (created_by) {
-      whereClause.createdBy = created_by;
-    }
-    
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.report.findMany({
-        where: whereClause,
-        skip: page * limit,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.report.count({ where: whereClause }),
-    ]);
-
-    return {
-      items,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
-  }
-
-  async findOneReport(id: number) {
-    const report = await this.prisma.report.findUnique({ where: { id } });
-    
-    if (!report) {
-      throw new NotFoundException(`Report with ID ${id} not found`);
-    }
-    
-    return report;
-  }
-
-  async deleteReport(id: number) {
-    const report = await this.prisma.report.findUnique({ where: { id } });
-    
-    if (!report) {
-      throw new NotFoundException(`Report with ID ${id} not found`);
-    }
-    
-    // Delete the report file if it exists
-    if (report.filePath && fs.existsSync(report.filePath)) {
-      fs.unlinkSync(report.filePath);
-    }
-    
-    await this.prisma.report.delete({ where: { id } });
-    return { message: 'Report deleted successfully' };
-  }
-
-  async getReportStats() {
-    const totalReports = await this.prisma.report.count();
-    const completedReports = await this.prisma.report.count({
-      where: { status: ReportStatus.COMPLETED }
-    });
-    const pendingReports = await this.prisma.report.count({
-      where: { status: ReportStatus.PENDING }
-    });
-    const failedReports = await this.prisma.report.count({
-      where: { status: ReportStatus.FAILED }
-    });
-
-    return {
-      total: totalReports,
-      completed: completedReports,
-      pending: pendingReports,
-      failed: failedReports,
-      successRate: totalReports > 0 ? (completedReports / totalReports * 100).toFixed(2) + '%' : '0%',
-    };
+  async getStatsSummary() {
+    const total = await this.prisma.report.count();
+    const ready = await this.prisma.report.count({ where: { status: 'ready' } });
+    return { total, ready };
   }
 }

@@ -1,422 +1,271 @@
+
 import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { reportsApi, Report } from '../../services/report.service';
 import { 
-  BarChart3, 
   FileText, 
+  Plus, 
   Download, 
-  Calendar, 
-  TrendingUp, 
-  Users, 
-  Eye,
-  PieChart,
-  LineChart,
-  Plus,
-  Filter,
-  X,
-  Clock,
-  CheckCircle,
+  Trash2, 
+  Clock, 
+  CheckCircle, 
   AlertCircle,
-  Download as DownloadIcon,
-  Save,
-  RotateCcw
+  BarChart3,
+  Calendar,
+  Layers,
+  ChevronRight,
+  Archive,
+  Search,
+  Box,
+  Globe,
+  List,
+  Zap,
+  X
 } from 'lucide-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { reportApi, ReportType, ReportFormat, ReportStatus, CreateReportDto } from '../../services/report.service';
-import { dashboardApi } from '../../services/dashboard.service';
 import { NeubrutalCard, NeubrutalButton, NeubrutalInput, NeubrutalSelect } from '../../components/ui/neubrutalism/NeubrutalComponents';
+import { soundEngine } from '../../utils/SoundUtility';
 
 const ReportsPage: React.FC = () => {
-  const [selectedReportType, setSelectedReportType] = useState<ReportType>(ReportType.SUMMARY);
-  const [reportFormat, setReportFormat] = useState<ReportFormat>(ReportFormat.EXCEL);
-  const [reportTitle, setReportTitle] = useState('企业数据分析报告');
-  const [reportDescription, setReportDescription] = useState('');
-  const [filters, setFilters] = useState<any>({});
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [activeReport, setActiveReport] = useState<Report | null>(null);
   const queryClient = useQueryClient();
 
-  // 获取实时统计数据用于预览
-  const { data: overviewData } = useQuery({
-    queryKey: ['dashboard', 'overview-for-report'],
-    queryFn: () => dashboardApi.getOverview().then(res => res.data),
+  // 报告配置状态
+  const [reportConfig, setReportConfig] = useState({
+    title: '',
+    type: 'MONTHLY',
+    modules: ['summary', 'details'] as string[]
   });
 
-  const statsData = overviewData?.stats;
-
-  const reportTypes = [
-    { id: ReportType.SUMMARY, label: '数据概览报告', icon: BarChart3 },
-    { id: ReportType.DETAILED, label: '详细分析报告', icon: FileText },
-    { id: ReportType.TRENDS, label: '趋势分析报告', icon: TrendingUp },
-    { id: ReportType.PRIORITY, label: '优先级分析报告', icon: Users },
-    { id: ReportType.AI_USAGE, label: 'AI使用分析报告', icon: Eye },
-    { id: ReportType.REGIONAL, label: '地区分布报告', icon: PieChart },
-    { id: ReportType.PARTNER, label: '伙伴等级报告', icon: LineChart },
-  ];
-
-  const reportFormats = [
-    { id: ReportFormat.PDF, label: 'PDF' },
-    { id: ReportFormat.EXCEL, label: 'Excel' },
-    { id: ReportFormat.CSV, label: 'CSV' },
-    { id: ReportFormat.JSON, label: 'JSON' },
-  ];
-
-  // 获取报告列表
-  const { data: reportsData, isLoading: isLoadingReports } = useQuery({
+  const { data: reports, isLoading } = useQuery({
     queryKey: ['reports'],
-    queryFn: () => reportApi.getReports().then(res => res.data),
-    refetchOnWindowFocus: false,
+    queryFn: () => reportsApi.getAllReports().then(res => res.data),
   });
 
-  // 创建报告
   const createReportMutation = useMutation({
-    mutationFn: (data: CreateReportDto) => reportApi.createReport(data),
+    mutationFn: (data: any) => reportsApi.generateReport(data),
     onSuccess: () => {
+      soundEngine.playSuccess();
       queryClient.invalidateQueries({ queryKey: ['reports'] });
-    },
+      setIsGenerating(false);
+    }
   });
 
-  const handleCreateReport = () => {
-    const createData: CreateReportDto = {
-      title: reportTitle,
-      type: selectedReportType,
-      format: reportFormat,
-      description: reportDescription,
-      filters: filters,
-    };
-
-    createReportMutation.mutate(createData);
+  const toggleModule = (mod: string) => {
+    setReportConfig(prev => ({
+      ...prev,
+      modules: prev.modules.includes(mod) 
+        ? prev.modules.filter(m => m !== mod) 
+        : [...prev.modules, mod]
+    }));
   };
 
-  const handleDownloadReport = (report: any) => {
-    reportApi.downloadReport(report.id).then(response => {
-      // 获取内容类型对应的后缀
-      const extension = report.format === 'excel' ? 'xlsx' : report.format;
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${report.title}_${new Date().getTime()}.${extension}`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    }).catch(err => {
-      console.error('下载失败:', err);
-      alert('下载失败，请检查文件是否存在');
+  const handleGenerate = () => {
+    setIsGenerating(true);
+    soundEngine.playPneumatic();
+    createReportMutation.mutate({
+      ...reportConfig,
+      description: `系统自动生成的 ${reportConfig.type} 级情报简报`
     });
   };
 
-  const handleDeleteReport = async (id: number) => {
-    if (window.confirm('确定要删除这分报告吗？')) {
-      try {
-        await reportApi.deleteReport(id);
-        queryClient.invalidateQueries({ queryKey: ['reports'] });
-        alert('报告已删除');
-      } catch (error) {
-        console.error('删除报告失败:', error);
-        alert('删除失败');
-      }
-    }
-  };
-
-  const getStatusIcon = (status: ReportStatus) => {
-    switch (status) {
-      case ReportStatus.COMPLETED:
-        return <CheckCircle size={16} className="text-green-600" />;
-      case ReportStatus.FAILED:
-        return <AlertCircle size={16} className="text-red-600" />;
-      case ReportStatus.PROCESSING:
-      case ReportStatus.PENDING:
-      default:
-        return <Clock size={16} className="text-yellow-600" />;
-    }
-  };
-
-  const getStatusColor = (status: ReportStatus) => {
-    switch (status) {
-      case ReportStatus.COMPLETED:
-        return 'bg-green-100 text-green-800';
-      case ReportStatus.FAILED:
-        return 'bg-red-100 text-red-800';
-      case ReportStatus.PROCESSING:
-        return 'bg-yellow-100 text-yellow-800';
-      case ReportStatus.PENDING:
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const handleDownload = (report: Report) => {
+    soundEngine.playTick();
+    reportsApi.downloadReport(report.id, report.title);
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">报告中心</h1>
-        <p className="text-gray-600">生成和查看企业数据分析报告</p>
+    <div className="space-y-8 pb-20">
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-black uppercase tracking-tighter">情报生产车间</h1>
+          <p className="font-bold text-gray-500 italic uppercase text-xs">Intelligence Production Factory v2.0</p>
+        </div>
+        <div className="flex gap-2">
+          <div className="px-4 py-2 bg-gray-800 text-white border-4 border-gray-900 font-black text-xs uppercase">
+            已存库情报: {reports?.length || 0}
+          </div>
+        </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* 侧边栏 - 报告类型选择和生成表单 */}
-        <div className="lg:w-80 space-y-6">
-          <NeubrutalCard>
-            <h2 className="text-lg font-semibold mb-4">生成新报告</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* 左侧：情报配置（积木组装） */}
+        <NeubrutalCard className="lg:col-span-1">
+          <h2 className="text-xl font-black mb-6 flex items-center gap-2 uppercase">
+            <Layers className="text-blue-600" /> 情报积木组装
+          </h2>
+          <div className="space-y-6">
+            <NeubrutalInput 
+              label="简报代号" 
+              placeholder="例如：西南Q3综述..." 
+              value={reportConfig.title}
+              onChange={(e) => setReportConfig(prev => ({...prev, title: e.target.value}))}
+            />
             
-            <div className="space-y-4">
-              <div>
-                <NeubrutalInput
-                  label="报告标题"
-                  value={reportTitle}
-                  onChange={(e) => setReportTitle(e.target.value)}
-                  placeholder="输入报告标题"
-                />
-              </div>
-              
-              <div>
-                <NeubrutalSelect
-                  label="报告类型"
-                  value={selectedReportType}
-                  onChange={(e) => setSelectedReportType(e.target.value as ReportType)}
+            <NeubrutalSelect 
+              label="任务周期" 
+              value={reportConfig.type}
+              onChange={(e) => setReportConfig(prev => ({...prev, type: e.target.value}))}
+            >
+              <option value="WEEKLY">周级 (WEEKLY)</option>
+              <option value="MONTHLY">月级 (MONTHLY)</option>
+              <option value="QUARTERLY">季级 (QUARTERLY)</option>
+              <option value="YEARLY">年级 (YEARLY)</option>
+            </NeubrutalSelect>
+
+            <div className="space-y-3">
+              <label className="block text-sm font-black uppercase">选择数据模块</label>
+              {[
+                { id: 'summary', label: '战略决策概要', icon: Zap },
+                { id: 'region', label: '区域态势分布', icon: Globe },
+                { id: 'details', label: '全量资产详单', icon: List },
+                { id: 'tech', label: '技术渗透矩阵', icon: Box },
+              ].map(mod => (
+                <button
+                  key={mod.id}
+                  onClick={() => toggleModule(mod.id)}
+                  className={`w-full flex items-center justify-between p-3 border-4 transition-all ${
+                    reportConfig.modules.includes(mod.id)
+                      ? 'bg-blue-600 border-gray-900 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-x-1 -translate-y-1'
+                      : 'bg-gray-50 border-gray-200 text-gray-400'
+                  }`}
                 >
-                  {reportTypes.map((type) => (
-                    <option key={type.id} value={type.id}>{type.label}</option>
-                  ))}
-                </NeubrutalSelect>
-              </div>
-              
-              <div>
-                <NeubrutalSelect
-                  label="输出格式"
-                  value={reportFormat}
-                  onChange={(e) => setReportFormat(e.target.value as ReportFormat)}
-                >
-                  {reportFormats.map((format) => (
-                    <option key={format.id} value={format.id}>{format.label}</option>
-                  ))}
-                </NeubrutalSelect>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">描述</label>
-                <textarea
-                  value={reportDescription}
-                  onChange={(e) => setReportDescription(e.target.value)}
-                  className="neubrutal-input w-full px-3 py-2 rounded-lg"
-                  placeholder="报告描述..."
-                  rows={3}
-                />
-              </div>
-              
-              <NeubrutalButton
-                onClick={() => setShowFilterPanel(!showFilterPanel)}
-                variant="secondary"
-                className="w-full"
-              >
-                <Filter size={18} className="mr-2" />
-                {showFilterPanel ? '隐藏筛选条件' : '设置筛选条件'}
-              </NeubrutalButton>
-              
-              {showFilterPanel && (
-                <div className="pt-4 border-t border-gray-200">
-                  <h3 className="text-md font-medium mb-2">筛选条件</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <NeubrutalSelect
-                        label="优先级"
-                        value={filters.优先级 || ''}
-                        onChange={(e) => setFilters({...filters, 优先级: e.target.value})}
-                      >
-                        <option value="">全部</option>
-                        <option value="P0">P0</option>
-                        <option value="P1">P1</option>
-                        <option value="P2">P2</option>
-                      </NeubrutalSelect>
-                    </div>
-                    
-                    <div>
-                      <NeubrutalSelect
-                        label="飞桨/文心"
-                        value={filters.飞桨_文心 || ''}
-                        onChange={(e) => setFilters({...filters, 飞桨_文心: e.target.value})}
-                      >
-                        <option value="">全部</option>
-                        <option value="飞桨">飞桨</option>
-                        <option value="文心">文心</option>
-                      </NeubrutalSelect>
-                    </div>
-                    
-                    <div>
-                      <NeubrutalInput
-                        label="地区"
-                        value={filters.base || ''}
-                        onChange={(e) => setFilters({...filters, base: e.target.value})}
-                        placeholder="地区名称"
-                      />
-                    </div>
+                  <div className="flex items-center gap-2 font-black text-xs">
+                    <mod.icon size={14} /> {mod.label}
                   </div>
-                </div>
-              )}
-              
-              <NeubrutalButton
-                onClick={handleCreateReport}
-                disabled={createReportMutation.isPending}
-                variant="primary"
-                className="w-full"
+                  {reportConfig.modules.includes(mod.id) && <CheckCircle size={14} />}
+                </button>
+              ))}
+            </div>
+
+            <NeubrutalButton 
+              variant="primary" 
+              className="w-full py-4 text-lg" 
+              onClick={handleGenerate}
+              disabled={isGenerating || !reportConfig.title}
+            >
+              {isGenerating ? '正在炼制中...' : '生产情报'}
+            </NeubrutalButton>
+          </div>
+        </NeubrutalCard>
+
+        {/* 右侧：战术档案库 (Archive) */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Archive size={20} />
+            <h2 className="text-xl font-black uppercase">战术档案库</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {reports?.map((report) => (
+              <div 
+                key={report.id}
+                className="group relative bg-white border-4 border-gray-800 p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer"
+                onClick={() => setActiveReport(report)}
               >
-                {createReportMutation.isPending ? (
-                  <>
-                    <span className="loading-spinner mr-2">⏳</span>
-                    生成中...
-                  </>
-                ) : (
-                  <>
-                    <Plus size={18} className="mr-2" />
-                    生成报告
-                  </>
+                {/* READY 印戳视觉 */}
+                {report.status === 'ready' && (
+                  <div className="absolute -top-3 -right-3 bg-green-500 text-white border-4 border-gray-900 px-2 py-1 font-black text-[10px] uppercase rotate-12 z-10 shadow-lg">
+                    READY
+                  </div>
                 )}
-              </NeubrutalButton>
-            </div>
-          </NeubrutalCard>
-          
-          {/* 历史报告列表 */}
-          <NeubrutalCard>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">历史报告</h2>
-              <NeubrutalButton 
-                variant="secondary" 
-                size="sm"
-                onClick={() => queryClient.invalidateQueries({ queryKey: ['reports'] })}
-              >
-                <RotateCcw size={16} />
-              </NeubrutalButton>
-            </div>
-            
-            {isLoadingReports ? (
-              <div className="flex justify-center items-center h-32">
-                <div className="loading-spinner text-2xl">⏳</div>
-              </div>
-            ) : reportsData?.items && reportsData.items.length > 0 ? (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {reportsData.items.map((report) => (
-                  <div key={report.id} className="p-3 border-2 border-gray-800 rounded-lg">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium truncate">{report.title}</h3>
-                        <p className="text-xs text-gray-600">{report.type} • {report.format}</p>
-                        <div className="flex items-center gap-1 mt-1">
-                          {getStatusIcon(report.status)}
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(report.status)}`}>
-                            {report.status === ReportStatus.PENDING && '等待中'}
-                            {report.status === ReportStatus.PROCESSING && '处理中'}
-                            {report.status === ReportStatus.COMPLETED && '已完成'}
-                            {report.status === ReportStatus.FAILED && '失败'}
-                          </span>
-                        </div>
-                        {report.status === ReportStatus.PROCESSING && (
-                          <div className="mt-2">
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-blue-600 h-2 rounded-full" 
-                                style={{ width: `${report.progress}%` }}
-                              ></div>
-                            </div>
-                            <p className="text-xs text-gray-600 mt-1">{report.progress}%</p>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex flex-col gap-1">
-                        {report.status === ReportStatus.COMPLETED && (
-                          <NeubrutalButton
-                            size="sm"
-                            variant="success"
-                            onClick={() => handleDownloadReport(report)}
-                            title="下载报告"
-                          >
-                            <DownloadIcon size={16} />
-                          </NeubrutalButton>
-                        )}
-                        <NeubrutalButton
-                          size="sm"
-                          variant="danger"
-                          onClick={() => handleDeleteReport(report.id)}
-                          title="删除报告"
-                        >
-                          <X size={16} />
-                        </NeubrutalButton>
-                      </div>
-                    </div>
-                    
-                    <p className="text-xs text-gray-600 mt-2">
-                      生成时间: {new Date(report.createdAt).toLocaleString('zh-CN')}
-                    </p>
+                
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-gray-100 border-2 border-gray-800">
+                    <FileText size={24} className="text-gray-800" />
                   </div>
-                ))}
+                  <div className="flex-1 overflow-hidden">
+                    <h3 className="font-black text-sm uppercase truncate mb-1">{report.title}</h3>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">{report.type} INTEL</p>
+                    <div className="mt-4 flex items-center gap-2 text-[8px] font-black text-gray-500">
+                      <Clock size={10} /> {new Date(report.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-between items-center pt-4 border-t-2 border-dashed border-gray-100">
+                  <span className="text-[10px] font-black text-blue-600 underline">查看详情</span>
+                  {report.status === 'ready' && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleDownload(report); }}
+                      className="p-2 bg-gray-800 text-white border-2 border-gray-900 hover:bg-blue-600 transition-colors"
+                    >
+                      <Download size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
-            ) : (
-              <p className="text-gray-600 text-center py-4">暂无历史报告</p>
-            )}
-          </NeubrutalCard>
+            ))}
+          </div>
         </div>
+      </div>
 
-        {/* 主内容区 - 报告预览 */}
-        <div className="flex-1">
-          <NeubrutalCard>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">
-                {reportTypes.find(r => r.id === selectedReportType)?.label}
-              </h2>
-              <div className="text-sm text-gray-600">
-                <Calendar size={16} className="inline mr-1" />
-                实时预览
+      {/* 情报组装动效全屏遮罩 (Scheme 1) */}
+      {isGenerating && (
+        <div className="fixed inset-0 z-[100] bg-gray-900/90 flex flex-col items-center justify-center p-10 backdrop-blur-md">
+          <div className="w-full max-w-md text-center space-y-10">
+            <div className="relative">
+              <div className="loading-spinner text-8xl mx-auto opacity-20">⚙️</div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Box size={48} className="text-blue-500 animate-bounce" />
               </div>
             </div>
+            <div>
+              <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter">情报炼制中...</h2>
+              <p className="text-blue-400 font-bold mt-2 animate-pulse uppercase text-xs tracking-[0.3em]">Assembling Intelligence Modules</p>
+            </div>
+            {/* 模拟掉落的像素块 */}
+            <div className="flex justify-center gap-2">
+              {[1,2,3,4,5].map(i => (
+                <div key={i} className={`w-4 h-4 bg-blue-500 animate-bounce`} style={{ animationDelay: `${i*0.1}s` }}></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
-            <div className="h-96 flex items-center justify-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-              <div className="text-center">
-                <FileText size={48} className="mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-700 mb-2">报告预览</h3>
-                <p className="text-gray-600 mb-4">
-                  选择报告类型和筛选条件，然后点击"生成报告"按钮
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
-                  <div className="p-4 bg-white border-2 border-gray-800 rounded-lg">
-                    <div className="text-2xl font-black text-blue-600">
-                      {statsData?.totalEnterprises || '0'}
-                    </div>
-                    <div className="text-xs font-bold text-gray-500 uppercase">覆盖企业总数</div>
+      {/* HUD 即时预览层 (Scheme 2) */}
+      {activeReport && (
+        <div className="fixed inset-0 z-[80] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl animate-in zoom-in duration-200">
+            <NeubrutalCard className="!p-0 overflow-hidden !shadow-[15px_15px_0px_0px_rgba(0,0,0,1)] border-8">
+              <div className="bg-gray-800 text-white p-6 border-b-4 border-gray-900 flex justify-between items-center">
+                <div>
+                  <h3 className="text-2xl font-black uppercase italic tracking-tighter">{activeReport.title}</h3>
+                  <p className="text-[10px] font-bold text-blue-400 uppercase">Strategic Insight Preview</p>
+                </div>
+                <button onClick={() => setActiveReport(null)} className="p-2 border-2 border-white hover:bg-red-600 transition-all">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="p-8 bg-white grid grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black text-gray-400 uppercase">核心战态摘要</p>
+                  <div className="p-4 bg-gray-50 border-2 border-gray-800 rounded-lg">
+                    <p className="text-xs font-bold leading-relaxed">{activeReport.description || '无详细情报描述'}</p>
                   </div>
-                  <div className="p-4 bg-white border-2 border-gray-800 rounded-lg">
-                    <div className="text-2xl font-black text-purple-600">
-                      {statsData?.stageStats?.find((s: any) => s.aiImplementationStage === '全面生产')?._count?._all || 0}
-                    </div>
-                    <div className="text-xs font-bold text-gray-500 uppercase">已投产方案数</div>
-                  </div>
-                  <div className="p-4 bg-white border-2 border-gray-800 rounded-lg">
-                    <div className="text-2xl font-black text-green-600">
-                      {statsData?.totalApiCalls ? (Number(statsData.totalApiCalls) / 10000).toFixed(1) + 'W' : '0'}
-                    </div>
-                    <div className="text-xs font-bold text-gray-500 uppercase">月均总调用量</div>
+                </div>
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black text-gray-400 uppercase">数据构成</p>
+                  <div className="flex flex-wrap gap-2">
+                    {JSON.parse(activeReport.filters || '{}')?.modules?.map((m: string) => (
+                      <span key={m} className="px-2 py-1 bg-blue-100 border-2 border-blue-800 text-[10px] font-black uppercase">{m}</span>
+                    )) || <span className="text-[10px] font-bold italic">STANDARD PACKAGE</span>}
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 border-2 border-gray-800 rounded-lg">
-                <h3 className="font-medium mb-2">报告配置</h3>
-                <ul className="text-sm space-y-1">
-                  <li><span className="font-medium">类型:</span> {reportTypes.find(r => r.id === selectedReportType)?.label}</li>
-                  <li><span className="font-medium">格式:</span> {reportFormats.find(f => f.id === reportFormat)?.label}</li>
-                  <li><span className="font-medium">标题:</span> {reportTitle}</li>
-                </ul>
+              <div className="p-6 bg-gray-50 border-t-4 border-gray-800 flex justify-end gap-4">
+                <NeubrutalButton variant="secondary" onClick={() => setActiveReport(null)}>关闭预览</NeubrutalButton>
+                {activeReport.status === 'ready' && (
+                  <NeubrutalButton variant="success" onClick={() => handleDownload(activeReport)}>
+                    <Download size={18} className="mr-2" /> 提取物理文档
+                  </NeubrutalButton>
+                )}
               </div>
-              <div className="p-4 border-2 border-gray-800 rounded-lg">
-                <h3 className="font-medium mb-2">筛选条件</h3>
-                <ul className="text-sm space-y-1">
-                  <li><span className="font-medium">优先级:</span> {filters.优先级 || '全部'}</li>
-                  <li><span className="font-medium">飞桨/文心:</span> {filters.飞桨_文心 || '全部'}</li>
-                  <li><span className="font-medium">地区:</span> {filters.base || '全部'}</li>
-                </ul>
-              </div>
-            </div>
-          </NeubrutalCard>
+            </NeubrutalCard>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

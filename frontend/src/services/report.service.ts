@@ -8,84 +8,33 @@ export enum ReportType {
   AI_USAGE = 'ai_usage',
   REGIONAL = 'regional',
   PARTNER = 'partner',
-}
-
-export enum ReportFormat {
-  PDF = 'pdf',
-  EXCEL = 'excel',
-  CSV = 'csv',
-  JSON = 'json',
-}
-
-export enum ReportStatus {
-  PENDING = 'pending',
-  PROCESSING = 'processing',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
+  WEEKLY = 'WEEKLY',
+  MONTHLY = 'MONTHLY',
+  QUARTERLY = 'QUARTERLY',
+  YEARLY = 'YEARLY',
 }
 
 export interface Report {
   id: number;
   title: string;
-  type: ReportType;
-  format: ReportFormat;
-  status: ReportStatus;
+  type: string;
+  status: string;
   description?: string;
   filters?: any;
-  configuration?: any;
   filePath?: string;
-  fileName?: string;
-  dataCount: number;
-  progress: number;
   createdAt: string;
   updatedAt: string;
-  completedAt?: string;
-  createdBy?: string;
-  errorMessage?: string;
 }
 
-export interface CreateReportDto {
-  title: string;
-  type: ReportType;
-  format: ReportFormat;
-  description?: string;
-  filters?: any;
-  configuration?: any;
-}
-
-export interface ReportFilter {
-  type?: ReportType;
-  status?: ReportStatus;
-  created_by?: string;
-  page?: number;
-  limit?: number;
-}
-
-export interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface ReportStats {
-  total: number;
-  completed: number;
-  pending: number;
-  failed: number;
-  successRate: string;
-}
-
-export const reportApi = {
-  // 创建报告
-  createReport: (data: CreateReportDto) => {
-    return apiClient.post<Report>('/reports', data);
+export const reportsApi = {
+  // 获取报告列表
+  getAllReports: () => {
+    return apiClient.get<Report[]>('/reports');
   },
 
-  // 获取报告列表
-  getReports: (filters?: ReportFilter) => {
-    return apiClient.get<PaginatedResponse<Report>>('/reports', { params: filters });
+  // 生成报告
+  generateReport: (data: any) => {
+    return apiClient.post<Report>('/reports', data);
   },
 
   // 获取单个报告
@@ -94,9 +43,18 @@ export const reportApi = {
   },
 
   // 下载报告
-  downloadReport: (id: number) => {
+  downloadReport: (id: number, title: string) => {
     return apiClient.get(`/reports/${id}/download`, {
       responseType: 'blob'
+    }).then((response) => {
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${title}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
     });
   },
 
@@ -105,8 +63,8 @@ export const reportApi = {
     return apiClient.delete(`/reports/${id}`);
   },
 
-  // 获取报告统计
-  getReportStats: () => {
-    return apiClient.get<ReportStats>('/reports/stats/summary');
+  // 获取统计
+  getStats: () => {
+    return apiClient.get('/reports/stats/summary');
   }
 };
