@@ -13,8 +13,12 @@ import {
   Settings, 
   LogOut,
   Menu,
-  Bot
+  Bot,
+  Clock,
+  Database,
+  RefreshCw
 } from 'lucide-react';
+import { enterpriseApi } from '../../services/enterprise.service';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,6 +29,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { theme, setTheme } = useTheme();
   const location = useLocation();
   const [isGlitching, setIsGlitching] = React.useState(false);
+  const [currentTime, setCurrentTime] = React.useState(new Date());
+  const [totalEnterprises, setTotalEnterprises] = React.useState<number | null>(null);
+
+  // 实时时钟
+  React.useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 获取企业总数
+  React.useEffect(() => {
+    enterpriseApi.getEnterpriseStats().then(res => {
+      setTotalEnterprises(res.data.total);
+    }).catch(err => console.error('Failed to fetch stats', err));
+  }, [location.pathname]); // 路由切换时尝试刷新（数据可能变了）
 
   // 监听路由变化触发 Glitch 转场 (Scheme 7)
   React.useEffect(() => {
@@ -121,24 +140,47 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {location.pathname.split('/').pop() || 'DASHBOARD'}
             </h2>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {/* 主题切换拨片 (Scheme 12) */}
-            <div className="flex bg-gray-200 border-4 border-gray-800 p-1 rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] mr-4">
+            <div className="hidden lg:flex bg-gray-200 border-2 border-gray-800 p-1 rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] mr-4">
               {(['baidu', 'deep-ops', 'nuclear'] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => { soundEngine.playTick(); setTheme(t); }}
                   className={`px-2 py-1 text-[8px] font-black uppercase transition-all ${
-                    theme === t ? 'bg-gray-800 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -translate-x-0.5 -translate-y-0.5' : 'text-gray-500 hover:text-gray-800'
+                    theme === t ? 'bg-gray-800 text-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] -translate-x-0.5 -translate-y-0.5' : 'text-gray-500 hover:text-gray-800'
                   }`}
                 >
                   {t.replace('-', ' ')}
                 </button>
               ))}
             </div>
-            <span className="text-[10px] font-black bg-yellow-400 border-2 border-gray-800 px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase">
-              Command Ready
-            </span>
+
+            {/* 动态系统状态 HUD */}
+            <div className="hidden md:flex items-center gap-2 font-mono">
+              <div className="bg-white text-gray-900 border-2 border-gray-900 px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center min-w-[90px]">
+                <span className="text-[7px] font-bold text-gray-500 uppercase leading-none mb-1">Mission Time</span>
+                <div className="flex items-center gap-1">
+                  <Clock size={10} className="text-gray-400" />
+                  <span className="text-xs font-black leading-none">
+                    {currentTime.toLocaleTimeString([], { hour12: false })}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="bg-gray-800 text-white border-2 border-gray-900 px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center min-w-[110px]">
+                <span className="text-[7px] font-bold text-blue-400 uppercase leading-none mb-1">Ecosystem Scale</span>
+                <div className="flex items-center gap-2">
+                  <Database size={10} className="text-blue-400" />
+                  <span className="text-xs font-black italic leading-none">{totalEnterprises ?? '---'} ENT</span>
+                </div>
+              </div>
+
+              <div className="bg-green-500 text-gray-900 border-2 border-gray-900 px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1">
+                <RefreshCw size={10} className="animate-spin" style={{ animationDuration: '3s' }} />
+                <span className="text-[9px] font-black uppercase">Sync OK</span>
+              </div>
+            </div>
           </div>
         </header>
 

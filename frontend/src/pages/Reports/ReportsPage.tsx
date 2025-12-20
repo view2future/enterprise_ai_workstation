@@ -20,12 +20,16 @@ import {
   Globe,
   List,
   Zap,
+  Maximize2,
   X
 } from 'lucide-react';
 import { NeubrutalCard, NeubrutalButton, NeubrutalInput, NeubrutalSelect } from '../../components/ui/neubrutalism/NeubrutalComponents';
 import { soundEngine } from '../../utils/SoundUtility';
 
+import { useNavigate } from 'react-router-dom';
+
 const ReportsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeReport, setActiveReport] = useState<Report | null>(null);
   const queryClient = useQueryClient();
@@ -36,6 +40,40 @@ const ReportsPage: React.FC = () => {
     type: 'MONTHLY',
     modules: ['summary', 'details'] as string[]
   });
+
+  // 自动命名函数
+  const generateAutoTitle = (type: string) => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const random = Math.floor(100 + Math.random() * 900); // 3位随机码
+    
+    const typeMap: Record<string, string> = {
+      'WEEKLY': 'WK',
+      'MONTHLY': 'MO',
+      'QUARTERLY': 'QT',
+      'YEARLY': 'YR'
+    };
+
+    return `${typeMap[type] || 'RP'}·CD·${year}${month}${day}·${random}`;
+  };
+
+  // 当类型改变时，如果标题为空或包含旧代号，则更新标题
+  const handleTypeChange = (newType: string) => {
+    setReportConfig(prev => ({
+      ...prev,
+      type: newType,
+      title: generateAutoTitle(newType)
+    }));
+  };
+
+  // 初始化标题
+  React.useEffect(() => {
+    if (!reportConfig.title) {
+      setReportConfig(prev => ({ ...prev, title: generateAutoTitle(prev.type) }));
+    }
+  }, []);
 
   const { data: reports, isLoading } = useQuery({
     queryKey: ['reports'],
@@ -74,128 +112,171 @@ const ReportsPage: React.FC = () => {
     reportsApi.downloadReport(report.id, report.title);
   };
 
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredReports = reports?.filter(r => 
+    r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.type.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-8 pb-20">
-      <div className="flex justify-between items-end">
+      <div className="flex justify-between items-end bg-gray-900 text-white p-8 border-b-8 border-blue-600 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
         <div>
-          <h1 className="text-3xl font-black uppercase tracking-tighter">情报生产车间</h1>
-          <p className="font-bold text-gray-500 italic uppercase text-xs">Intelligence Production Factory v2.0</p>
+          <h1 className="text-4xl font-black uppercase tracking-tighter italic">情报生产与归档中心</h1>
+          <p className="font-bold text-blue-400 italic uppercase text-xs tracking-[0.3em] mt-2">Intelligence Archive & Production Terminal v3.0</p>
         </div>
-        <div className="flex gap-2">
-          <div className="px-4 py-2 bg-gray-800 text-white border-4 border-gray-900 font-black text-xs uppercase">
-            已存库情报: {reports?.length || 0}
+        <div className="flex gap-4">
+          <div className="text-right">
+            <p className="text-[10px] font-black text-gray-500 uppercase">库内情报总量</p>
+            <p className="text-3xl font-black italic">{reports?.length || 0}</p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* 左侧：情报配置（积木组装） */}
-        <NeubrutalCard className="lg:col-span-1">
-          <h2 className="text-xl font-black mb-6 flex items-center gap-2 uppercase">
-            <Layers className="text-blue-600" /> 情报积木组装
-          </h2>
-          <div className="space-y-6">
-            <NeubrutalInput 
-              label="简报代号" 
-              placeholder="例如：西南Q3综述..." 
-              value={reportConfig.title}
-              onChange={(e) => setReportConfig(prev => ({...prev, title: e.target.value}))}
-            />
-            
-            <NeubrutalSelect 
-              label="任务周期" 
-              value={reportConfig.type}
-              onChange={(e) => setReportConfig(prev => ({...prev, type: e.target.value}))}
-            >
-              <option value="WEEKLY">周级 (WEEKLY)</option>
-              <option value="MONTHLY">月级 (MONTHLY)</option>
-              <option value="QUARTERLY">季级 (QUARTERLY)</option>
-              <option value="YEARLY">年级 (YEARLY)</option>
-            </NeubrutalSelect>
-
-            <div className="space-y-3">
-              <label className="block text-sm font-black uppercase">选择数据模块</label>
-              {[
-                { id: 'summary', label: '战略决策概要', icon: Zap },
-                { id: 'region', label: '区域态势分布', icon: Globe },
-                { id: 'details', label: '全量资产详单', icon: List },
-                { id: 'tech', label: '技术渗透矩阵', icon: Box },
-              ].map(mod => (
-                <button
-                  key={mod.id}
-                  onClick={() => toggleModule(mod.id)}
-                  className={`w-full flex items-center justify-between p-3 border-4 transition-all ${
-                    reportConfig.modules.includes(mod.id)
-                      ? 'bg-blue-600 border-gray-900 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-x-1 -translate-y-1'
-                      : 'bg-gray-50 border-gray-200 text-gray-400'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 font-black text-xs">
-                    <mod.icon size={14} /> {mod.label}
-                  </div>
-                  {reportConfig.modules.includes(mod.id) && <CheckCircle size={14} />}
-                </button>
-              ))}
-            </div>
-
-            <NeubrutalButton 
-              variant="primary" 
-              className="w-full py-4 text-lg" 
-              onClick={handleGenerate}
-              disabled={isGenerating || !reportConfig.title}
-            >
-              {isGenerating ? '正在炼制中...' : '生产情报'}
-            </NeubrutalButton>
-          </div>
-        </NeubrutalCard>
-
-        {/* 右侧：战术档案库 (Archive) */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Archive size={20} />
-            <h2 className="text-xl font-black uppercase">战术档案库</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {reports?.map((report) => (
-              <div 
-                key={report.id}
-                className="group relative bg-white border-4 border-gray-800 p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer"
-                onClick={() => setActiveReport(report)}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* 左侧：情报积木组装 (控制台) */}
+        <div className="lg:col-span-1 space-y-6">
+          <NeubrutalCard className="!bg-gray-50">
+            <h2 className="text-xl font-black mb-6 flex items-center gap-2 uppercase italic">
+              <Plus className="text-blue-600" /> 新建情报任务
+            </h2>
+            <div className="space-y-6">
+              <NeubrutalSelect 
+                label="任务周期 (Task Period)" 
+                value={reportConfig.type}
+                onChange={(e) => handleTypeChange(e.target.value)}
               >
-                {/* READY 印戳视觉 */}
-                {report.status === 'ready' && (
-                  <div className="absolute -top-3 -right-3 bg-green-500 text-white border-4 border-gray-900 px-2 py-1 font-black text-[10px] uppercase rotate-12 z-10 shadow-lg">
-                    READY
-                  </div>
-                )}
-                
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-gray-100 border-2 border-gray-800">
-                    <FileText size={24} className="text-gray-800" />
-                  </div>
-                  <div className="flex-1 overflow-hidden">
-                    <h3 className="font-black text-sm uppercase truncate mb-1">{report.title}</h3>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase">{report.type} INTEL</p>
-                    <div className="mt-4 flex items-center gap-2 text-[8px] font-black text-gray-500">
-                      <Clock size={10} /> {new Date(report.createdAt).toLocaleString()}
+                <option value="WEEKLY">周级 (WEEKLY)</option>
+                <option value="MONTHLY">月级 (MONTHLY)</option>
+                <option value="QUARTERLY">季级 (QUARTERLY)</option>
+                <option value="YEARLY">年级 (YEARLY)</option>
+              </NeubrutalSelect>
+
+              <NeubrutalInput 
+                label="情报代号 (Auto-Generated)" 
+                value={reportConfig.title}
+                onChange={(e) => setReportConfig(prev => ({...prev, title: e.target.value}))}
+              />
+              
+              <div className="space-y-3">
+                <label className="block text-[10px] font-black uppercase text-gray-500">组件装配 (Modules)</label>
+                {[
+                  { id: 'summary', label: '战略摘要', icon: Zap },
+                  { id: 'region', label: '区域分布', icon: Globe },
+                  { id: 'details', label: '资产详单', icon: List },
+                  { id: 'tech', label: '技术矩阵', icon: Box },
+                ].map(mod => (
+                  <button
+                    key={mod.id}
+                    onClick={() => toggleModule(mod.id)}
+                    className={`w-full flex items-center justify-between p-2 border-2 transition-all ${
+                      reportConfig.modules.includes(mod.id)
+                        ? 'bg-blue-600 border-gray-900 text-white'
+                        : 'bg-white border-gray-200 text-gray-400'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-black text-[10px] uppercase">
+                      <mod.icon size={12} /> {mod.label}
+                    </div>
+                    {reportConfig.modules.includes(mod.id) && <CheckCircle size={12} />}
+                  </button>
+                ))}
+              </div>
+
+              <NeubrutalButton 
+                variant="primary" 
+                className="w-full py-4" 
+                onClick={handleGenerate}
+                disabled={isGenerating || !reportConfig.title}
+              >
+                {isGenerating ? '正在炼制...' : '启动生产任务'}
+              </NeubrutalButton>
+            </div>
+          </NeubrutalCard>
+        </div>
+
+        {/* 右侧：情报档案馆 (列表流) */}
+        <div className="lg:col-span-3 space-y-6">
+          <div className="flex items-center gap-4 bg-white p-4 border-4 border-gray-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <Search className="text-gray-400" size={20} />
+            <input 
+              type="text" 
+              placeholder="搜索情报代号、类型或日期..." 
+              className="flex-1 outline-none font-bold text-sm uppercase"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <span className="px-2 py-1 bg-gray-100 text-[10px] font-black border-2 border-gray-900 uppercase">All Intel</span>
+            </div>
+          </div>
+
+          <div className="space-y-4 max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
+            {filteredReports?.length === 0 ? (
+              <div className="py-20 text-center border-4 border-dashed border-gray-200">
+                <Archive size={48} className="mx-auto text-gray-200 mb-4" />
+                <p className="font-black text-gray-300 uppercase">没有找到匹配的情报档案</p>
+              </div>
+            ) : (
+              filteredReports?.map((report) => (
+                <div 
+                  key={report.id}
+                  className="group flex items-center gap-6 bg-white border-4 border-gray-900 p-4 hover:bg-blue-50 transition-all cursor-pointer relative overflow-hidden"
+                  onClick={() => setActiveReport(report)}
+                >
+                  <div className={`w-2 h-12 ${
+                    report.type === 'YEARLY' ? 'bg-purple-600' : 
+                    report.type === 'QUARTERLY' ? 'bg-yellow-400' : 
+                    'bg-blue-500'
+                  }`}></div>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1">
+                      <h3 className="font-black text-lg tracking-tighter uppercase group-hover:text-blue-600">{report.title}</h3>
+                      <span className="px-2 py-0.5 border-2 border-gray-900 text-[8px] font-black uppercase">
+                        {report.type}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase">
+                        <Clock size={10} /> {new Date(report.createdAt).toLocaleString()}
+                      </div>
+                      <div className="flex items-center gap-1 text-[10px] font-black text-green-600 uppercase">
+                        <CheckCircle size={10} /> STATUS: {report.status}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-6 flex justify-between items-center pt-4 border-t-2 border-dashed border-gray-100">
-                  <span className="text-[10px] font-black text-blue-600 underline">查看详情</span>
-                  {report.status === 'ready' && (
+                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); navigate(`/reports/${report.id}`); }}
+                      className="p-2 bg-purple-600 text-white border-2 border-gray-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none"
+                    >
+                      <Maximize2 size={16} />
+                    </button>
                     <button 
                       onClick={(e) => { e.stopPropagation(); handleDownload(report); }}
-                      className="p-2 bg-gray-800 text-white border-2 border-gray-900 hover:bg-blue-600 transition-colors"
+                      className="p-2 bg-green-500 text-white border-2 border-gray-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none"
                     >
-                      <Download size={14} />
+                      <Download size={16} />
                     </button>
+                    <button 
+                      className="p-2 bg-white text-red-600 border-2 border-gray-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+
+                  {/* 状态印戳 */}
+                  {report.status === 'ready' && (
+                    <div className="absolute -right-2 -bottom-2 opacity-5 pointer-events-none rotate-12">
+                      <Archive size={80} />
+                    </div>
                   )}
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -257,9 +338,18 @@ const ReportsPage: React.FC = () => {
               <div className="p-6 bg-gray-50 border-t-4 border-gray-800 flex justify-end gap-4">
                 <NeubrutalButton variant="secondary" onClick={() => setActiveReport(null)}>关闭预览</NeubrutalButton>
                 {activeReport.status === 'ready' && (
-                  <NeubrutalButton variant="success" onClick={() => handleDownload(activeReport)}>
-                    <Download size={18} className="mr-2" /> 提取物理文档
-                  </NeubrutalButton>
+                  <>
+                    <NeubrutalButton 
+                      variant="primary" 
+                      onClick={() => navigate(`/reports/${activeReport.id}`)}
+                      className="bg-purple-600 text-white"
+                    >
+                      <Maximize2 size={18} className="mr-2" /> 进入数字化阅览室
+                    </NeubrutalButton>
+                    <NeubrutalButton variant="success" onClick={() => handleDownload(activeReport)}>
+                      <Download size={18} className="mr-2" /> 提取物理文档
+                    </NeubrutalButton>
+                  </>
                 )}
               </div>
             </NeubrutalCard>

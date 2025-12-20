@@ -13,6 +13,7 @@ import EnterpriseDetailPage from './pages/EnterpriseDetail/EnterpriseDetailPage'
 import EnterpriseFormPage from './pages/Enterprises/EnterpriseFormPage';
 import ImportExportPage from './pages/ImportExport/ImportExportPage';
 import ReportsPage from './pages/Reports/ReportsPage';
+import ReportViewPage from './pages/Reports/ReportViewPage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import LoginPage from './pages/Auth/LoginPage';
 
@@ -202,6 +203,16 @@ const MainApp: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <ReportsPage />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/reports/:id" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ReportViewPage />
             </Layout>
           </ProtectedRoute>
         } 
