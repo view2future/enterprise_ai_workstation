@@ -180,6 +180,48 @@ body {
   animation: note-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+/* 自适应文本颜色系统 */
+.text-auto-main {
+  color: var(--text-main);
+}
+
+.text-auto-desc {
+  color: var(--text-main);
+  opacity: 0.8;
+}
+
+/* 强制深色主题下的 Tailwind 灰色类覆盖 */
+[data-theme='deep-ops'] .text-gray-600,
+[data-theme='deep-ops'] .text-gray-500,
+[data-theme='deep-ops'] .text-gray-400 {
+  color: #94a3b8 !important; /* 蓝灰色 */
+}
+
+[data-theme='deep-ops'] .text-gray-800,
+[data-theme='deep-ops'] .text-gray-900 {
+  color: #f8fafc !important;
+}
+
+[data-theme='nuclear'] .text-gray-600,
+[data-theme='nuclear'] .text-gray-500,
+[data-theme='nuclear'] .text-gray-400 {
+  color: #a8a29e !important; /* 暖灰色 */
+}
+
+[data-theme='nuclear'] .text-gray-800,
+[data-theme='nuclear'] .text-gray-900 {
+  color: #fbbf24 !important; /* 琥珀黄 */
+}
+
+/* 统一卡片文字 */
+[data-theme='deep-ops'] p, [data-theme='deep-ops'] span, [data-theme='deep-ops'] h1, [data-theme='deep-ops'] h2, [data-theme='deep-ops'] h3 {
+  color: var(--text-main);
+}
+
+[data-theme='nuclear'] p, [data-theme='nuclear'] span, [data-theme='nuclear'] h1, [data-theme='nuclear'] h2, [data-theme='nuclear'] h3 {
+  color: var(--text-main);
+}
+
 /* 物理重力点击效果 */
 .active-gravity:active {
   transform: translate(4px, 4px);
