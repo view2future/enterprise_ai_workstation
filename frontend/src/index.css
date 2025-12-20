@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+
+  color-scheme: light;
+  color: #1e293b;
+  background-color: #f8fafc;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* Neubrutalism风格样式 */
+.neubrutal-card {
+  border: 4px solid #1e293b;
+  box-shadow: 6px 6px 0 0 #1e293b;
+  background-color: white;
+}
+
+.neubrutal-button {
+  border: 3px solid #1e293b;
+  box-shadow: 4px 4px 0 0 #1e293b;
+  background-color: #1e293b;
+  color: white;
+  font-weight: 700;
+}
+
+.neubrutal-button:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 0 #1e293b;
+}
+
+.neubrutal-input {
+  border: 3px solid #1e293b;
+  box-shadow: 4px 4px 0 0 #1e293b;
+}
+
+/* 高亮卡片样式 */
+.highlight-card {
+  border: 4px solid #3b82f6;
+  box-shadow: 6px 6px 0 0 #3b82f6;
+}
+
+/* AI相关卡片样式 */
+.ai-card {
+  border: 4px solid #8b5cf6;
+  box-shadow: 6px 6px 0 0 #8b5cf6;
+}
+
+/* 合作相关卡片样式 */
+.cooperation-card {
+  border: 4px solid #10b981;
+  box-shadow: 6px 6px 0 0 #10b981;
+}
+
+/* 加载动画 */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}

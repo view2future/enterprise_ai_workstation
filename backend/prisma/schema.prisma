@@ -1,0 +1,73 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  firstName String?
+  lastName  String?
+  role      String   @default("analyst")
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("users")
+}
+
+model Enterprise {
+  id                Int      @id @default(autoincrement())
+  enterpriseName    String   @unique @map("企业名称")
+  feijiangWenxin    String?  @map("飞桨_文心")
+  clueInTime        String?  @map("线索入库时间")
+  clueUpdateTime    DateTime? @map("线索更新时间")
+  partnerLevel      String?  @map("伙伴等级")
+  ecoAIProducts     String?  @map("生态AI产品")
+  priority          String?  @map("优先级")
+  base              String?  @map("base")
+  registeredCapital BigInt?  @map("注册资本")
+  employeeCount     Int?     @map("参保人数")
+  enterpriseBackground String? @map("企业背景")
+  industry          Json?    @map("行业")
+  taskDirection     String?  @map("任务方向")
+  contactInfo       String?  @map("联系人信息")
+  usageScenario     String?  @map("使用场景")
+  status            String   @default("active")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String?
+  updatedBy         String?
+  
+  @@map("enterprises")
+}
+
+model Report {
+  id             Int       @id @default(autoincrement())
+  title          String
+  type           String
+  format         String
+  status         String    @default("pending")
+  description    String?
+  filters        Json?
+  configuration  Json?
+  filePath       String?
+  fileName       String?
+  dataCount      Int       @default(0)
+  progress       Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  completedAt    DateTime?
+  createdBy      String?
+  errorMessage   String?
+  
+  @@map("reports")
+}
