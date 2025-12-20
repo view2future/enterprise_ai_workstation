@@ -16,23 +16,19 @@ async function bootstrap() {
   // 设置全局路由前缀
   app.setGlobalPrefix('api');
 
-  // 安全中间件
-  app.use(helmet());
-
-  // 速率限制
-  app.use(
-    rateLimit({
-      windowMs: 15 * 60 * 1000, // 15分钟
-      max: 100, // 限制每个IP 15分钟内最多100个请求
-    }),
-  );
-
-  // CORS配置
+  // CORS配置 - 必须在其他中间件之前
   app.enableCors({
-    origin: true, // 开发环境下允许所有来源，或明确指定
+    origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: 'Content-Type, Accept, Authorization',
   });
+
+  // 安全中间件 - 针对开发环境进行降级，防止拦截本地资源
+  app.use(helmet({
+    crossOriginResourcePolicy: false,
+    contentSecurityPolicy: false,
+  }));
 
   // 全局验证管道
   app.useGlobalPipes(

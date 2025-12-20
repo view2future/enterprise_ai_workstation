@@ -190,13 +190,24 @@ const ImportExportPage: React.FC = () => {
                 </div>
               </>
             ) : (
-              <div className="py-10 text-center space-y-4">
-                <div className="loading-spinner text-5xl mx-auto">⚙️</div>
-                <p className="font-black text-xl uppercase">正在进行数据治理...</p>
-                <div className="w-full bg-gray-200 border-4 border-gray-800 h-8 rounded-full overflow-hidden p-1">
-                  <div className="bg-blue-600 h-full rounded-full transition-all duration-300" style={{ width: `${importProgress}%` }}></div>
+              <div className="py-10 text-center space-y-6 scanline-effect bg-gray-900 border-4 border-gray-800 rounded-2xl relative overflow-hidden">
+                <div className="relative z-10">
+                  <div className="loading-spinner text-6xl mx-auto mb-4">⚙️</div>
+                  <p className="font-black text-2xl uppercase text-white tracking-tighter">智能治理实验室</p>
+                  <p className="text-blue-400 font-bold text-xs uppercase mb-6">DATA RECONSTRUCTION IN PROGRESS</p>
+                  <div className="w-2/3 mx-auto bg-gray-800 border-2 border-blue-500 h-6 rounded-none overflow-hidden p-1">
+                    <div className="bg-blue-500 h-full transition-all duration-300" style={{ width: `${importProgress}%` }}></div>
+                  </div>
+                  <p className="text-[10px] font-mono text-gray-400 mt-4">
+                    [SYSTEM]: ALIGNING FIELD "{importProgress > 50 ? 'avgMonthlyApiCalls' : 'enterpriseName'}" ... OK
+                  </p>
                 </div>
-                <p className="text-xs font-bold text-gray-500">正在分析表头并执行 20+ 个维度的字段对齐...</p>
+                {/* 装饰性背景 */}
+                <div className="absolute inset-0 opacity-10 pointer-events-none font-mono text-[8px] text-green-500 text-left p-2 overflow-hidden leading-tight">
+                  {Array(20).fill(0).map((_, i) => (
+                    <div key={i}>01010110101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101</div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

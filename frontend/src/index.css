@@ -78,6 +78,54 @@ body {
   }
 }
 
-.loading-spinner {
-  animation: spin 1s linear infinite;
+/* 物理重力点击效果 */
+.active-gravity:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0px 0px 0px 0px rgba(0, 0, 0, 1) !important;
+}
+
+/* 扫描线动效 - 用于导入和详情页 */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1000%); }
+}
+.scanline-effect {
+  position: relative;
+  overflow: hidden;
+}
+.scanline-effect::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 1);
+  animation: scanline 3s linear infinite;
+  pointer-events: none;
+}
+
+/* 数字滚轮字体增强 */
+.font-digital {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 系统 Bot 浮动动效 */
+@keyframes bot-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(5deg); }
+}
+.animate-bot {
+  animation: bot-float 4s ease-in-out infinite;
+}
+
+/* 勋章点亮特效 */
+@keyframes badge-glow {
+  0% { box-shadow: 0 0 5px #f59e0b; }
+  50% { box-shadow: 0 0 25px #f59e0b; }
+  100% { box-shadow: 0 0 5px #f59e0b; }
+}
+.badge-glow {
+  animation: badge-glow 2s infinite;
 }

@@ -16,8 +16,10 @@ export interface DashboardStats {
 }
 
 export interface ChartData {
-  industryDistribution: Array<{ name: string; value: number }>;
-  capitalDistribution: Array<{ registeredCapital: string; _count: { _all: number } }>;
+  industryDistribution?: Array<{ name: string; value: number }>;
+  techDistribution?: Array<{ name: string; value: number }>;
+  starPartners?: Array<any>;
+  capitalDistribution?: Array<{ registeredCapital: string; _count: { _all: number } }>;
   monthlyTrendData: Array<{ month: string; count: number }>;
 }
 

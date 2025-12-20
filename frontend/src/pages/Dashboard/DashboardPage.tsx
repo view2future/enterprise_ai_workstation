@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -10,7 +9,8 @@ import {
   Trophy, 
   Star,
   Plus,
-  BarChart3
+  BarChart3,
+  TrendingUp
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -27,7 +27,7 @@ import {
   LineChart,
   Line
 } from 'recharts';
-import { NeubrutalCard, NeubrutalButton } from '../../components/ui/neubrutalism/NeubrutalComponents';
+import { NeubrutalCard, NeubrutalButton, NumberCounter } from '../../components/ui/neubrutalism/NeubrutalComponents';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
 
@@ -43,13 +43,15 @@ const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [timeRange, setTimeRange] = React.useState('all');
 
-  const { data: overviewData, isLoading } = useQuery({
+  const { data: overviewData, isLoading, error } = useQuery({
     queryKey: ['dashboard', 'overview', timeRange],
     queryFn: () => dashboardApi.getOverview(timeRange).then(res => res.data),
     refetchOnWindowFocus: false,
   });
 
   if (isLoading) return <div className="flex justify-center items-center h-screen text-3xl font-black">正在加载生态大盘...</div>;
+
+  if (error) return <div className="p-6 text-red-600 text-center font-black">获取大盘数据失败: {(error as Error).message}</div>;
 
   const stats = overviewData?.stats;
   const chartData = overviewData?.chartData;
@@ -81,24 +83,32 @@ const DashboardPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <NeubrutalCard className="bg-white">
           <p className="text-xs font-black text-gray-500 uppercase">企业数据总量</p>
-          <p className="text-4xl font-black mt-2">{stats?.totalEnterprises}</p>
+          <p className="text-4xl font-black mt-2">
+            <NumberCounter value={stats?.totalEnterprises || 0} />
+          </p>
           <p className="text-xs font-bold text-blue-600 mt-4 flex items-center gap-1 cursor-pointer" onClick={() => navigate('/enterprises')}>
             查看全量明细 <ArrowLeft size={12} className="rotate-180" />
           </p>
         </NeubrutalCard>
         <NeubrutalCard className="bg-red-50">
           <p className="text-xs font-black text-red-800 uppercase">P0级核心伙伴</p>
-          <p className="text-4xl font-black text-red-900 mt-2">{stats?.p0Enterprises}</p>
+          <p className="text-4xl font-black mt-2">
+            <NumberCounter value={stats?.p0Enterprises || 0} />
+          </p>
           <p className="text-xs font-bold text-red-700 mt-4 italic">战略级深度合作企业</p>
         </NeubrutalCard>
         <NeubrutalCard className="bg-blue-50">
           <p className="text-xs font-black text-blue-800 uppercase">飞桨技术覆盖</p>
-          <p className="text-4xl font-black text-blue-900 mt-2">{stats?.feijiangEnterprises}</p>
+          <p className="text-4xl font-black mt-2">
+            <NumberCounter value={stats?.feijiangEnterprises || 0} />
+          </p>
           <p className="text-xs font-bold text-blue-700 mt-4">PaddlePaddle 赋能数</p>
         </NeubrutalCard>
         <NeubrutalCard className="bg-purple-50">
           <p className="text-xs font-black text-purple-800 uppercase">文心技术覆盖</p>
-          <p className="text-4xl font-black text-purple-900 mt-2">{stats?.wenxinEnterprises}</p>
+          <p className="text-4xl font-black mt-2">
+            <NumberCounter value={stats?.wenxinEnterprises || 0} />
+          </p>
           <p className="text-xs font-bold text-purple-700 mt-4">ERNIE Bot 应用数</p>
         </NeubrutalCard>
       </div>
@@ -112,7 +122,7 @@ const DashboardPage: React.FC = () => {
             <Globe className="text-green-600" /> 企业区域势力分布
           </h2>
           <div className="h-80">
-            {stats?.regionStats?.length > 0 ? (
+            {stats?.regionStats && stats.regionStats.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.regionStats}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -138,7 +148,7 @@ const DashboardPage: React.FC = () => {
             <Zap className="text-yellow-500 fill-yellow-500" /> 技术生态占比 (飞桨 vs 文心)
           </h2>
           <div className="h-80">
-            {chartData?.techDistribution?.length > 0 ? (
+            {chartData?.techDistribution && chartData.techDistribution.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -170,7 +180,7 @@ const DashboardPage: React.FC = () => {
             <Trophy className="text-orange-600" /> 合作伙伴能级分布
           </h2>
           <div className="h-80">
-            {stats?.partnerLevelStats?.length > 0 ? (
+            {stats?.partnerLevelStats && stats.partnerLevelStats.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -200,7 +210,7 @@ const DashboardPage: React.FC = () => {
             <Star className="text-red-600 fill-red-600" /> 企业价值优先级构成
           </h2>
           <div className="h-80">
-            {stats?.priorityStats?.length > 0 ? (
+            {stats?.priorityStats && stats.priorityStats.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.priorityStats} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} />
@@ -223,9 +233,11 @@ const DashboardPage: React.FC = () => {
 
       {/* 底部增长趋势 */}
       <NeubrutalCard>
-        <h2 className="text-xl font-black mb-6">产业月度增长趋势线</h2>
+        <h2 className="text-xl font-black mb-6 flex items-center gap-2">
+          <TrendingUp className="text-blue-600" /> 产业月度增长趋势线
+        </h2>
         <div className="h-72">
-          {chartData?.monthlyTrendData?.length > 0 ? (
+          {chartData?.monthlyTrendData && chartData.monthlyTrendData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData.monthlyTrendData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />

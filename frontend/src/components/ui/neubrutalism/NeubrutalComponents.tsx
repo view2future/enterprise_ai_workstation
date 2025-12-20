@@ -5,14 +5,14 @@ interface NeubrutalButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElem
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const NeubrutalButton: React.FC<NeubrutalButtonProps> = ({ 
+export const NeubrutalButton: React.FC<NeubrutalButtonProps> = ({
   children, 
   variant = 'primary', 
   size = 'md',
   className = '',
   ...props 
 }) => {
-  const baseClasses = 'font-bold transition-all duration-150 active:translate-x-1 active:translate-y-1';
+  const baseClasses = 'font-bold transition-all duration-75 active-gravity';
   
   const variantClasses = {
     primary: 'bg-gray-800 text-white border-4 border-gray-800 hover:bg-gray-700',
@@ -43,6 +43,34 @@ export const NeubrutalButton: React.FC<NeubrutalButtonProps> = ({
   );
 };
 
+// 新增：数字滚动计数器组件 (Scheme 6)
+export const NumberCounter: React.FC<{ value: number; suffix?: string }> = ({ value, suffix = '' }) => {
+  const [displayValue, setDisplayValue] = React.useState(0);
+
+  React.useEffect(() => {
+    let start = 0;
+    const duration = 1000;
+    const increment = value / (duration / 16);
+    
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= value) {
+        setDisplayValue(value);
+        clearInterval(timer);
+      } else {
+        setDisplayValue(Math.floor(start));
+      }
+    }, 16);
+    
+    return () => clearInterval(timer);
+  }, [value]);
+
+  return (
+    <span className="font-digital">
+      {displayValue.toLocaleString()}{suffix}
+    </span>
+  );
+};
 interface NeubrutalCardProps extends React.HTMLAttributes<HTMLDivElement> {
   padding?: 'sm' | 'md' | 'lg';
 }

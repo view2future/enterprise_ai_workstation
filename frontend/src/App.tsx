@@ -7,6 +7,7 @@ import Layout from './components/layout/Layout';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import TechRadarPage from './pages/Dashboard/TechRadarPage';
 import EcosystemPage from './pages/Dashboard/EcosystemPage';
+import WarRoomPage from './pages/Dashboard/WarRoomPage';
 import EnterprisesPage from './pages/Enterprises/EnterprisesPage';
 import EnterpriseDetailPage from './pages/EnterpriseDetail/EnterpriseDetailPage';
 import EnterpriseFormPage from './pages/Enterprises/EnterpriseFormPage';
@@ -131,6 +132,16 @@ const MainApp: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <EcosystemPage />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/war-room" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <WarRoomPage />
             </Layout>
           </ProtectedRoute>
         } 
