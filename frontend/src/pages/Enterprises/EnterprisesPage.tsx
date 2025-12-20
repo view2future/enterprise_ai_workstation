@@ -42,23 +42,40 @@ const EnterprisesPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
   const { selectedIds, addToCompare, removeFromCompare } = useCompareStore();
 
-  const [filters, setFilters] = useState<EnterpriseFilter>({
+  // 初始化 filters 时直接读取 URL 参数
+  const [filters, setFilters] = useState<EnterpriseFilter>(() => ({
     priority: searchParams.get('priority') || undefined,
     feijiangWenxin: searchParams.get('feijiangWenxin') || undefined,
     base: searchParams.get('base') || undefined,
     page: 0,
     limit: 50
-  });
+  }));
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  // 监听 URL 参数变化
+  // 监听 URL 参数变化并实时强制同步过滤器
   React.useEffect(() => {
-    const base = searchParams.get('base');
-    const priority = searchParams.get('priority');
-    if (base || priority) {
-      setFilters(prev => ({ ...prev, base: base || undefined, priority: priority || undefined, page: 0 }));
-    }
+    const rawBase = searchParams.get('base');
+    const rawPriority = searchParams.get('priority');
+    const rawTech = searchParams.get('feijiangWenxin');
+    
+    // 显式解码
+    const base = rawBase ? decodeURIComponent(rawBase) : undefined;
+    const priority = rawPriority ? decodeURIComponent(rawPriority) : undefined;
+    const feijiangWenxin = rawTech ? decodeURIComponent(rawTech) : undefined;
+    
+    setFilters(prev => {
+      if (prev.base !== base || prev.priority !== priority || prev.feijiangWenxin !== feijiangWenxin) {
+        return {
+          ...prev,
+          base,
+          priority,
+          feijiangWenxin,
+          page: 0
+        };
+      }
+      return prev;
+    });
   }, [searchParams]);
 
   // 获取企业列表

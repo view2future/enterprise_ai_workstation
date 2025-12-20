@@ -1,7 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import CommandCenter from '../CommandCenter';
+import HUDNotes from '../HUDNotes';
+import { soundEngine } from '../../utils/SoundUtility';
 import { 
   LayoutDashboard, 
   Building2, 
@@ -19,7 +22,16 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const location = useLocation();
+  const [isGlitching, setIsGlitching] = React.useState(false);
+
+  // 监听路由变化触发 Glitch 转场 (Scheme 7)
+  React.useEffect(() => {
+    setIsGlitching(true);
+    const timer = setTimeout(() => setIsGlitching(false), 200);
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
 
   const navItems = [
     { path: '/dashboard', label: '仪表板', icon: LayoutDashboard },
@@ -34,6 +46,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="flex h-screen bg-gray-100 font-sans">
       <CommandCenter />
+      <HUDNotes />
       
       {/* 侧边栏 */}
       <div className="w-64 bg-gray-800 text-white flex flex-col border-r-4 border-gray-900 shadow-[4px_0px_0px_0px_rgba(0,0,0,1)]">
@@ -54,6 +67,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <li key={item.path}>
                   <Link
                     to={item.path}
+                    onClick={() => soundEngine.playTick()}
                     className={`flex items-center gap-3 px-4 py-3 border-2 transition-all active-gravity ${
                       isActive(item.path)
                         ? 'bg-blue-600 border-gray-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-x-1 -translate-y-1 text-white'
@@ -86,7 +100,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             </div>
             <button
-              onClick={logout}
+              onClick={() => { soundEngine.playTick(); logout(); }}
               className="p-2 border-2 border-red-800 bg-red-600 hover:bg-red-700 text-white active-gravity transition-all"
               title="退出系统"
             >
@@ -98,29 +112,38 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* 主内容区 */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* 顶部导航栏 */}
-        <header className="bg-white shadow-sm p-4 flex items-center justify-between">
+        <header className="bg-white border-b-4 border-gray-800 p-4 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
-            <button className="lg:hidden p-2 rounded-lg border-2 border-gray-800 neubrutal-button">
+            <button className="lg:hidden p-2 border-4 border-gray-800 neubrutal-button">
               <Menu size={20} />
             </button>
-            <h2 className="text-lg font-semibold text-gray-800">
-              {location.pathname === '/dashboard' && '仪表板'}
-              {location.pathname === '/enterprises' && '企业管理'}
-              {location.pathname === '/enterprises/:id' && '企业详情'}
-              {location.pathname === '/import-export' && '导入导出'}
-              {location.pathname === '/reports' && '报告'}
-              {location.pathname === '/settings' && '系统设置'}
+            <h2 className="text-lg font-black uppercase tracking-widest text-gray-800">
+              {location.pathname.split('/').pop() || 'DASHBOARD'}
             </h2>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-sm text-gray-600">
-              欢迎, {user?.username}
+            {/* 主题切换拨片 (Scheme 12) */}
+            <div className="flex bg-gray-200 border-4 border-gray-800 p-1 rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] mr-4">
+              {(['baidu', 'deep-ops', 'nuclear'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => { soundEngine.playTick(); setTheme(t); }}
+                  className={`px-2 py-1 text-[8px] font-black uppercase transition-all ${
+                    theme === t ? 'bg-gray-800 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] -translate-x-0.5 -translate-y-0.5' : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  {t.replace('-', ' ')}
+                </button>
+              ))}
             </div>
+            <span className="text-[10px] font-black bg-yellow-400 border-2 border-gray-800 px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase">
+              Command Ready
+            </span>
           </div>
         </header>
 
-        {/* 页面内容 */}
-        <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
+        {/* 页面内容 - 带 Glitch 转场 */}
+        <main className={`flex-1 overflow-y-auto p-6 bg-gray-50 transition-all ${isGlitching ? 'glitch-active' : ''}`}>
           {children}
         </main>
       </div>

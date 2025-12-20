@@ -33,6 +33,10 @@ export class EnterprisesService {
       whereClause.priority = priority;
     }
 
+    if (feijiangWenxin) {
+      whereClause.feijiangWenxin = { contains: feijiangWenxin };
+    }
+
     if (base) {
       whereClause.base = { contains: base, mode: 'insensitive' };
     }

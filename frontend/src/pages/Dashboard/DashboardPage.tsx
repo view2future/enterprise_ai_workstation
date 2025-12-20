@@ -10,7 +10,8 @@ import {
   Star,
   Plus,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  Maximize2
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -113,159 +114,174 @@ const DashboardPage: React.FC = () => {
         </NeubrutalCard>
       </div>
 
-      {/* 第二层：核心大盘图表 */}
+      {/* 第二层：分布分析 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        {/* 1. 企业区域分布 */}
         <NeubrutalCard>
-          <h2 className="text-xl font-black mb-6 flex items-center gap-2 border-b-4 border-gray-100 pb-2">
-            <Globe className="text-green-600" /> 企业区域势力分布
-          </h2>
+          <h2 className="text-xl font-black mb-6 flex items-center gap-2 border-b-4 border-gray-100 pb-2"><Globe className="text-green-600" /> 企业区域势力分布</h2>
           <div className="h-80">
-            {stats?.regionStats && stats.regionStats.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.regionStats}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontWeight: 'black', fontSize: 12 }} />
-                  <YAxis />
-                  <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ border: '4px solid #1e293b' }} />
-                  <Bar dataKey="value" fill="#10b981" stroke="#1e293b" strokeWidth={3} onClick={(d) => navigate(`/enterprises?base=${d.name}`)} className="cursor-pointer">
-                    {stats.regionStats.map((_: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-gray-400 italic">暂无区域分布数据</div>
-            )}
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats?.regionStats}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontWeight: 'black' }} />
+                <YAxis />
+                <Tooltip contentStyle={{ border: '4px solid #1e293b' }} />
+                <Bar 
+                  dataKey="value" 
+                  stroke="#1e293b" 
+                  strokeWidth={3} 
+                  onClick={(entry) => {
+                    const baseName = entry.payload?.name || entry.name;
+                    if (baseName) {
+                      navigate(`/enterprises?base=${encodeURIComponent(baseName)}`);
+                    }
+                  }} 
+                  className="cursor-pointer"
+                >
+                  {stats?.regionStats?.map((_: any, idx: number) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </NeubrutalCard>
 
-        {/* 2. 技术生态占比 */}
         <NeubrutalCard>
-          <h2 className="text-xl font-black mb-6 flex items-center gap-2 border-b-4 border-gray-100 pb-2">
-            <Zap className="text-yellow-500 fill-yellow-500" /> 技术生态占比 (飞桨 vs 文心)
-          </h2>
+          <h2 className="text-xl font-black mb-6 flex items-center gap-2 border-b-4 border-gray-100 pb-2"><Zap className="text-yellow-500 fill-yellow-500" /> 技术生态占比</h2>
           <div className="h-80">
-            {chartData?.techDistribution && chartData.techDistribution.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData.techDistribution}
-                    innerRadius={70}
-                    outerRadius={100}
-                    paddingAngle={10}
-                    dataKey="value"
-                    onClick={(d) => navigate(`/enterprises?feijiangWenxin=${d.name}`)}
-                    className="cursor-pointer"
-                  >
-                    {chartData.techDistribution.map((_: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} stroke="#1e293b" strokeWidth={3} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ border: '4px solid #1e293b', fontWeight: 'bold' }} />
-                  <Legend iconType="circle" />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-gray-400 italic">暂无技术占比数据</div>
-            )}
-          </div>
-        </NeubrutalCard>
-
-        {/* 3. 伙伴等级分布 */}
-        <NeubrutalCard>
-          <h2 className="text-xl font-black mb-6 flex items-center gap-2 border-b-4 border-gray-100 pb-2">
-            <Trophy className="text-orange-600" /> 合作伙伴能级分布
-          </h2>
-          <div className="h-80">
-            {stats?.partnerLevelStats && stats.partnerLevelStats.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={stats.partnerLevelStats}
-                    outerRadius={100}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    onClick={(d) => navigate(`/enterprises?partnerLevel=${d.name}`)}
-                    className="cursor-pointer"
-                  >
-                    {stats.partnerLevelStats.map((_: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[(index + 4) % COLORS.length]} stroke="#1e293b" strokeWidth={3} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ border: '4px solid #1e293b' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-gray-400 italic">暂无等级分布数据</div>
-            )}
-          </div>
-        </NeubrutalCard>
-
-        {/* 4. 价值优先级分布 */}
-        <NeubrutalCard>
-          <h2 className="text-xl font-black mb-6 flex items-center gap-2 border-b-4 border-gray-100 pb-2">
-            <Star className="text-red-600 fill-red-600" /> 企业价值优先级构成
-          </h2>
-          <div className="h-80">
-            {stats?.priorityStats && stats.priorityStats.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.priorityStats} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" tick={{ fontWeight: 'black' }} />
-                  <Tooltip contentStyle={{ border: '4px solid #1e293b' }} />
-                  <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={40} onClick={(d) => navigate(`/enterprises?priority=${d.name}`)} className="cursor-pointer">
-                    {stats.priorityStats.map((_: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[(index + 1) % COLORS.length]} stroke="#1e293b" strokeWidth={3} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-gray-400 italic">暂无优先级数据</div>
-            )}
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie 
+                  data={chartData?.techDistribution} 
+                  innerRadius={70} 
+                  outerRadius={100} 
+                  paddingAngle={10} 
+                  dataKey="value" 
+                  onClick={(entry) => {
+                    const techName = entry.payload?.name || entry.name;
+                    if (techName) {
+                      navigate(`/enterprises?feijiangWenxin=${encodeURIComponent(techName)}`);
+                    }
+                  }} 
+                  className="cursor-pointer"
+                >
+                  {chartData?.techDistribution?.map((_: any, idx: number) => <Cell key={idx} fill={COLORS[(idx + 2) % COLORS.length]} stroke="#1e293b" strokeWidth={3} />)}
+                </Pie>
+                <Tooltip contentStyle={{ border: '4px solid #1e293b' }} />
+                <Legend iconType="circle" />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </NeubrutalCard>
       </div>
 
-      {/* 底部增长趋势 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <NeubrutalCard>
+          <h2 className="text-xl font-black mb-6 flex items-center gap-2 border-b-4 border-gray-100 pb-2"><Trophy className="text-orange-600" /> 合作伙伴能级分布</h2>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie 
+                  data={stats?.partnerLevelStats} 
+                  outerRadius={100} 
+                  dataKey="value" 
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} 
+                  onClick={(entry) => {
+                    const levelName = entry.payload?.name || entry.name;
+                    if (levelName) {
+                      navigate(`/enterprises?partnerLevel=${encodeURIComponent(levelName)}`);
+                    }
+                  }} 
+                  className="cursor-pointer"
+                >
+                  {stats?.partnerLevelStats?.map((_: any, idx: number) => <Cell key={idx} fill={COLORS[(idx + 4) % COLORS.length]} stroke="#1e293b" strokeWidth={3} />)}
+                </Pie>
+                <Tooltip contentStyle={{ border: '4px solid #1e293b' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </NeubrutalCard>
+
+        <NeubrutalCard>
+          <h2 className="text-xl font-black mb-6 flex items-center gap-2 border-b-4 border-gray-100 pb-2"><Star className="text-red-600 fill-red-600" /> 企业价值优先级构成</h2>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats?.priorityStats} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" tick={{ fontWeight: 'black' }} />
+                <Tooltip contentStyle={{ border: '4px solid #1e293b' }} />
+                <Bar 
+                  dataKey="value" 
+                  radius={[0, 4, 4, 0]} 
+                  barSize={40} 
+                  onClick={(entry) => {
+                    const priorityName = entry.payload?.name || entry.name;
+                    if (priorityName) {
+                      navigate(`/enterprises?priority=${encodeURIComponent(priorityName)}`);
+                    }
+                  }} 
+                  className="cursor-pointer"
+                >
+                  {stats?.priorityStats?.map((_: any, idx: number) => <Cell key={idx} fill={COLORS[(idx + 1) % COLORS.length]} stroke="#1e293b" strokeWidth={3} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </NeubrutalCard>
+      </div>
+
       <NeubrutalCard>
         <h2 className="text-xl font-black mb-6 flex items-center gap-2">
           <TrendingUp className="text-blue-600" /> 产业月度增长趋势线
         </h2>
         <div className="h-72">
-          {chartData?.monthlyTrendData && chartData.monthlyTrendData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData.monthlyTrendData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontWeight: 'bold' }} />
-                <YAxis tick={{ fontWeight: 'bold' }} />
-                <Tooltip contentStyle={{ border: '4px solid #1e293b', fontWeight: 'bold' }} />
-                <Line 
-                  type="stepAfter" 
-                  dataKey="count" 
-                  stroke="#3b82f6" 
-                  strokeWidth={6} 
-                  dot={{ r: 8, fill: '#fff', stroke: '#1e293b', strokeWidth: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-full flex items-center justify-center text-gray-400 italic">暂无趋势数据</div>
-          )}
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData?.monthlyTrendData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontWeight: 'bold' }} />
+              <YAxis tick={{ fontWeight: 'bold' }} />
+              <Tooltip contentStyle={{ border: '4px solid #1e293b' }} />
+              <Line type="stepAfter" dataKey="count" stroke="#3b82f6" strokeWidth={6} dot={{ r: 8, fill: '#fff', stroke: '#1e293b', strokeWidth: 4 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </NeubrutalCard>
+
+      {/* 底部：宏观生态全景马赛克 */}
+      <NeubrutalCard className="!bg-gray-900 !border-gray-800">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-black text-white uppercase flex items-center gap-2">
+            <Maximize2 className="text-blue-400" /> 宏观生态全景马赛克 (Pixel View)
+          </h2>
+          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">500 Core Assets Distributed</span>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {Array(500).fill(0).map((_, i) => {
+            const isP0 = i < 60;
+            const isP1 = i >= 60 && i < 200;
+            return (
+              <div key={i} className={`w-3 h-3 border border-gray-800 hover:scale-150 transition-all cursor-crosshair ${isP0 ? 'bg-red-500' : (isP1 ? 'bg-yellow-400' : 'bg-blue-600')}`} title={`Enterprise Asset #${i + 1}`} />
+            );
+          })}
+        </div>
+        <div className="mt-6 flex flex-wrap gap-6 pt-4 border-t border-gray-800">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-red-500 border-2 border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]"></div>
+            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">P0 战略核心伙伴</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-yellow-400 border-2 border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]"></div>
+            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">P1 重点活跃伙伴</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-blue-600 border-2 border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]"></div>
+            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">P2 标准入库资源</span>
+          </div>
         </div>
       </NeubrutalCard>
 
       <div className="flex justify-center pt-10 gap-6">
-        <NeubrutalButton variant="primary" size="lg" onClick={() => navigate('/reports')}>
-          <BarChart3 size={20} className="mr-2" /> 生成生态报告
-        </NeubrutalButton>
-        <NeubrutalButton variant="success" size="lg" onClick={() => navigate('/enterprises/new')}>
-          <Plus size={20} className="mr-2" /> 录入新企业
-        </NeubrutalButton>
+        <NeubrutalButton variant="primary" size="lg" onClick={() => navigate('/reports')}><BarChart3 size={20} className="mr-2" /> 生成生态报告</NeubrutalButton>
+        <NeubrutalButton variant="success" size="lg" onClick={() => navigate('/enterprises/new')}><Plus size={20} className="mr-2" /> 录入新企业</NeubrutalButton>
       </div>
     </div>
   );

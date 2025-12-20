@@ -1,4 +1,6 @@
+
 import React from 'react';
+import { soundEngine } from '../../../utils/SoundUtility';
 
 interface NeubrutalButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'warning';
@@ -30,6 +32,11 @@ export const NeubrutalButton: React.FC<NeubrutalButtonProps> = ({
   
   const classes = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`;
   
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    soundEngine.playTick();
+    if (props.onClick) props.onClick(e);
+  };
+
   return (
     <button
       className={classes}
@@ -37,13 +44,14 @@ export const NeubrutalButton: React.FC<NeubrutalButtonProps> = ({
         boxShadow: '6px 6px 0px 0px rgba(0, 0, 0, 1)',
       }}
       {...props}
+      onClick={handleClick}
     >
       {children}
     </button>
   );
 };
 
-// 新增：数字滚动计数器组件 (Scheme 6)
+// 数字滚动计数器组件
 export const NumberCounter: React.FC<{ value: number; suffix?: string }> = ({ value, suffix = '' }) => {
   const [displayValue, setDisplayValue] = React.useState(0);
 
@@ -71,6 +79,7 @@ export const NumberCounter: React.FC<{ value: number; suffix?: string }> = ({ va
     </span>
   );
 };
+
 interface NeubrutalCardProps extends React.HTMLAttributes<HTMLDivElement> {
   padding?: 'sm' | 'md' | 'lg';
 }
@@ -93,7 +102,7 @@ export const NeubrutalCard: React.FC<NeubrutalCardProps> = ({
     <div
       className={classes}
       style={{
-        boxShadow: '8px 8px 0px 0px rgba(0, 0, 0, 1)',
+        boxShadow: '8px 8px 0px 0px rgba(0,0,0,1)',
       }}
       {...props}
     >
@@ -126,7 +135,7 @@ export const NeubrutalInput: React.FC<NeubrutalInputProps> = ({
         <input
           className={`w-full border-4 border-gray-800 bg-white pl-10 pr-3 py-2 font-sans text-base font-normal transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
           style={{
-            boxShadow: '4px 4px 0px 0px rgba(0, 0, 0, 1)',
+            boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)',
           }}
           {...props}
         />
@@ -163,7 +172,7 @@ export const NeubrutalSelect: React.FC<NeubrutalSelectProps> = ({
       <select
         className={`w-full border-4 border-gray-800 bg-white px-3 py-2 font-sans text-base font-normal transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none ${className}`}
         style={{
-          boxShadow: '4px 4px 0px 0px rgba(0, 0, 0, 1)',
+          boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)',
         }}
         {...props}
       >
@@ -174,12 +183,7 @@ export const NeubrutalSelect: React.FC<NeubrutalSelectProps> = ({
   );
 };
 
-interface NeubrutalTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  label?: string;
-  error?: string;
-}
-
-export const NeubrutalTextarea: React.FC<NeubrutalTextareaProps> = ({ 
+export const NeubrutalTextarea: React.FC<{ label?: string; error?: string } & React.TextareaHTMLAttributes<HTMLTextAreaElement>> = ({ 
   label,
   error,
   className = '',
@@ -195,7 +199,7 @@ export const NeubrutalTextarea: React.FC<NeubrutalTextareaProps> = ({
       <textarea
         className={`w-full border-4 border-gray-800 bg-white px-3 py-2 font-sans text-base font-normal transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
         style={{
-          boxShadow: '4px 4px 0px 0px rgba(0, 0, 0, 1)',
+          boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)',
         }}
         {...props}
       />

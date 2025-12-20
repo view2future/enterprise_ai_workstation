@@ -78,10 +78,112 @@ body {
   }
 }
 
+:root {
+  --primary: #3b82f6;
+  --bg-main: #f8fafc;
+  --card-bg: #ffffff;
+  --text-main: #1e293b;
+  --shadow: rgba(0, 0, 0, 1);
+}
+
+[data-theme='deep-ops'] {
+  --primary: #10b981;
+  --bg-main: #020617;
+  --card-bg: #0f172a;
+  --text-main: #f0fdf4;
+  --shadow: rgba(16, 185, 129, 0.4);
+  --border-color: #1e293b;
+  --input-bg: #1e293b;
+}
+
+[data-theme='nuclear'] {
+  --primary: #f97316;
+  --bg-main: #1c1917;
+  --card-bg: #292524;
+  --text-main: #fdba74;
+  --shadow: rgba(249, 115, 22, 0.2);
+  --border-color: #44403c;
+  --input-bg: #44403c;
+}
+
+/* 应用变量 */
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 强制重置深色模式下的背景色 - 覆盖 Tailwind bg-white 类 */
+[data-theme='deep-ops'] .bg-white,
+[data-theme='deep-ops'] .bg-gray-50,
+[data-theme='deep-ops'] .bg-gray-100 {
+  background-color: var(--card-bg) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme='nuclear'] .bg-white,
+[data-theme='nuclear'] .bg-gray-50,
+[data-theme='nuclear'] .bg-gray-100 {
+  background-color: var(--card-bg) !important;
+  color: var(--text-main) !important;
+}
+
+/* 统一输入框与下拉框背景 */
+[data-theme='deep-ops'] input, 
+[data-theme='deep-ops'] select, 
+[data-theme='deep-ops'] textarea {
+  background-color: var(--input-bg) !important;
+  color: var(--text-main) !important;
+  border-color: var(--primary) !important;
+}
+
+[data-theme='nuclear'] input, 
+[data-theme='nuclear'] select, 
+[data-theme='nuclear'] textarea {
+  background-color: var(--input-bg) !important;
+  color: var(--text-main) !important;
+  border-color: var(--primary) !important;
+}
+
+/* Neubrutalism 风格覆盖 */
+[data-theme='deep-ops'] .neubrutal-card,
+[data-theme='deep-ops'] .neubrutal-card-white {
+  background-color: var(--card-bg) !important;
+  border-color: #334155 !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme='nuclear'] .neubrutal-card,
+[data-theme='nuclear'] .neubrutal-card-white {
+  background-color: var(--card-bg) !important;
+  border-color: #57534e !important;
+  color: var(--text-main) !important;
+}
+
+/* 覆盖 Dashboard KPI 文本颜色 */
+[data-theme='deep-ops'] .text-gray-900,
+[data-theme='deep-ops'] .text-gray-800 {
+  color: #f8fafc !important;
+}
+
+[data-theme='nuclear'] .text-gray-900,
+[data-theme='nuclear'] .text-gray-800 {
+  color: #fbbf24 !important;
+}
+
+/* 便签层动效 */
+@keyframes note-pop {
+  0% { transform: scale(0.5) rotate(-10deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.hud-note {
+  animation: note-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
 /* 物理重力点击效果 */
 .active-gravity:active {
   transform: translate(4px, 4px);
-  box-shadow: 0px 0px 0px 0px rgba(0, 0, 0, 1) !important;
+  box-shadow: 0px 0px 0px 0px var(--shadow) !important;
 }
 
 /* 扫描线动效 - 用于导入和详情页 */
@@ -116,16 +218,46 @@ body {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   50% { transform: translateY(-10px) rotate(5deg); }
 }
-.animate-bot {
-  animation: bot-float 4s ease-in-out infinite;
+/* Glitch 信号干扰效果 (Scheme 7) */
+@keyframes glitch {
+  0% { transform: translate(0); }
+  20% { transform: translate(-5px, 5px); }
+  40% { transform: translate(-5px, -5px); }
+  60% { transform: translate(5px, 5px); }
+  80% { transform: translate(5px, -5px); }
+  100% { transform: translate(0); }
 }
 
-/* 勋章点亮特效 */
-@keyframes badge-glow {
-  0% { box-shadow: 0 0 5px #f59e0b; }
-  50% { box-shadow: 0 0 25px #f59e0b; }
-  100% { box-shadow: 0 0 5px #f59e0b; }
+.glitch-active {
+  animation: glitch 0.2s cubic-bezier(.25, .46, .45, .94) both infinite;
+  text-shadow: 2px 0 #ff00c1, -2px 0 #00fff9;
+  filter: saturate(2);
 }
-.badge-glow {
-  animation: badge-glow 2s infinite;
+
+.page-transition-enter {
+  opacity: 0;
+  filter: brightness(2) contrast(2);
+  transform: scale(0.98);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  filter: brightness(1) contrast(1);
+  transform: scale(1);
+  transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* 扫描线增强 */
+.scanline-effect::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  z-index: 2;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
 }
