@@ -5,8 +5,11 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Layout from './components/layout/Layout';
 import DashboardPage from './pages/Dashboard/DashboardPage';
+import TechRadarPage from './pages/Dashboard/TechRadarPage';
+import EcosystemPage from './pages/Dashboard/EcosystemPage';
 import EnterprisesPage from './pages/Enterprises/EnterprisesPage';
 import EnterpriseDetailPage from './pages/EnterpriseDetail/EnterpriseDetailPage';
+import EnterpriseFormPage from './pages/Enterprises/EnterpriseFormPage';
 import ImportExportPage from './pages/ImportExport/ImportExportPage';
 import ReportsPage from './pages/Reports/ReportsPage';
 import SettingsPage from './pages/Settings/SettingsPage';
@@ -60,7 +63,7 @@ const MainApp: React.FC = () => {
       const autoLogin = async () => {
         try {
           // 使用演示凭据自动登录
-          await login('demo@example.com', 'password123');
+          await login('demo@example.example.com', 'password123');
           // 登录成功后会自动重定向到仪表板
         } catch (error) {
           // 如果自动登录失败，重定向到登录页
@@ -113,6 +116,26 @@ const MainApp: React.FC = () => {
         } 
       />
       <Route 
+        path="/dashboard/tech" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <TechRadarPage />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/ecosystem" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <EcosystemPage />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
         path="/enterprises" 
         element={
           <ProtectedRoute>
@@ -123,11 +146,31 @@ const MainApp: React.FC = () => {
         } 
       />
       <Route 
+        path="/enterprises/new" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <EnterpriseFormPage />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
         path="/enterprises/:id" 
         element={
           <ProtectedRoute>
             <Layout>
               <EnterpriseDetailPage />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/enterprises/:id/edit" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <EnterpriseFormPage />
             </Layout>
           </ProtectedRoute>
         } 

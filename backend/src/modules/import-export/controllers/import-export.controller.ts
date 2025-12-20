@@ -17,7 +17,7 @@ import { ImportExportService } from '../services/import-export.service';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 
-@Controller('import-export')
+@Controller('data')
 export class ImportExportController {
   constructor(private readonly importExportService: ImportExportService) {}
 
@@ -39,21 +39,11 @@ export class ImportExportController {
   @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
   async importEnterprises(
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new FileTypeValidator({ fileType: 'csv|application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
-          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }), // 10MB
-        ],
-      }),
-    )
-    file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File,
   ) {
-    if (file.mimetype === 'text/csv') {
-      return this.importExportService.importEnterprisesFromCSV(file.buffer.toString());
-    } else {
-      throw new Error('目前仅支持CSV文件导入');
-    }
+    // 自动兼容各种 CSV 编码
+    const content = file.buffer.toString('utf-8');
+    return this.importExportService.importEnterprisesFromCSV(content);
   }
 
   @Get('template')

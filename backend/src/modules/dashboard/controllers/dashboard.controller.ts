@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Query } from '@nestjs/common';
 import { DashboardService } from '../services/dashboard.service';
 
 @Controller('dashboard')
@@ -7,29 +7,29 @@ export class DashboardController {
 
   @Get('stats')
   @HttpCode(HttpStatus.OK)
-  async getStats() {
-    return this.dashboardService.getStats();
+  async getStats(@Query('timeRange') timeRange: string) {
+    return this.dashboardService.getStats(timeRange);
   }
 
   @Get('charts')
   @HttpCode(HttpStatus.OK)
-  async getChartData() {
-    return this.dashboardService.getChartData();
+  async getChartData(@Query('timeRange') timeRange: string) {
+    return this.dashboardService.getChartData(timeRange);
   }
 
   @Get('recent-activities')
   @HttpCode(HttpStatus.OK)
-  async getRecentActivities() {
-    return this.dashboardService.getRecentActivities();
+  async getRecentActivities(@Query('timeRange') timeRange: string) {
+    return this.dashboardService.getRecentActivities(timeRange);
   }
 
   @Get('overview')
   @HttpCode(HttpStatus.OK)
-  async getOverview() {
+  async getOverview(@Query('timeRange') timeRange: string) {
     const [stats, chartData, recentActivities] = await Promise.all([
-      this.dashboardService.getStats(),
-      this.dashboardService.getChartData(),
-      this.dashboardService.getRecentActivities(),
+      this.dashboardService.getStats(timeRange),
+      this.dashboardService.getChartData(timeRange),
+      this.dashboardService.getRecentActivities(timeRange),
     ]);
 
     return {
@@ -38,5 +38,17 @@ export class DashboardController {
       recentActivities,
       timestamp: new Date().toISOString(),
     };
+  }
+
+  @Get('tech-radar')
+  @HttpCode(HttpStatus.OK)
+  async getTechRadar() {
+    return this.dashboardService.getTechRadarData();
+  }
+
+  @Get('ecosystem')
+  @HttpCode(HttpStatus.OK)
+  async getEcosystem() {
+    return this.dashboardService.getEcosystemHealthData();
   }
 }

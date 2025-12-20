@@ -139,28 +139,35 @@ export class ReportsService {
         }
       }
 
-      const enterprises = await this.prisma.enterprise.findMany(query);
-      const dataCount = enterprises.length;
+    const enterprises = await this.prisma.enterprise.findMany(query);
+    const dataCount = enterprises.length;
 
-      await this.prisma.report.update({
-        where: { id: reportId },
-        data: { 
-          progress: 25,
-          dataCount,
-          updatedAt: new Date(),
-        },
-      });
+    // 转换 BigInt 为 Number 防止 Excel 库报错
+    const serializedEnterprises = enterprises.map(ent => ({
+      ...ent,
+      avgMonthlyApiCalls: ent.avgMonthlyApiCalls ? Number(ent.avgMonthlyApiCalls) : 0,
+      registeredCapital: ent.registeredCapital ? Number(ent.registeredCapital) : 0
+    }));
 
-      // Generate report based on format
-      let filePath: string;
-      let fileName: string;
+    await this.prisma.report.update({
+      where: { id: reportId },
+      data: { 
+        progress: 25,
+        dataCount,
+        updatedAt: new Date(),
+      },
+    });
 
-      switch (report.format) {
-        case ReportFormat.EXCEL:
-          const excelResult = await this.generateExcelReport(report, enterprises);
-          filePath = excelResult.filePath;
-          fileName = excelResult.fileName;
-          break;
+    // Generate report based on format
+    let filePath: string;
+    let fileName: string;
+
+    switch (report.format) {
+      case ReportFormat.EXCEL:
+        const excelResult = await this.generateExcelReport(report, serializedEnterprises);
+        filePath = excelResult.filePath;
+        fileName = excelResult.fileName;
+        break;
         case ReportFormat.CSV:
           const csvResult = await this.generateCsvReport(report, enterprises);
           filePath = csvResult.filePath;
@@ -209,85 +216,96 @@ export class ReportsService {
 
   private async generateExcelReport(report: any, enterprises: any[]): Promise<{ filePath: string; fileName: string }> {
     const workbook = new Excel.Workbook();
-    const worksheet = workbook.addWorksheet('企业数据报告');
+    
+    // 工作表 1：战略决策概要 (Executive Summary)
+    const summarySheet = workbook.addWorksheet('战略决策概要');
+    summarySheet.cell(1, 1).string('指标项目').style({ font: { bold: true } });
+    summarySheet.cell(1, 2).string('当前数值').style({ font: { bold: true } });
+    
+    summarySheet.cell(2, 1).string('覆盖企业总数');
+    summarySheet.cell(2, 2).number(enterprises.length);
+    
+    const p0Count = enterprises.filter(e => e.priority === 'P0').length;
+    summarySheet.cell(3, 1).string('P0级核心伙伴');
+    summarySheet.cell(3, 2).number(p0Count);
+    
+    const successCount = enterprises.filter(e => e.aiImplementationStage === '全面生产').length;
+    summarySheet.cell(4, 1).string('已投产AI方案数');
+    summarySheet.cell(4, 2).number(successCount);
 
-    // Define headers based on report type
+    // 工作表 2：企业明细详单 (Enterprise Details)
+    const worksheet = workbook.addWorksheet('企业明细详单');
+    // ... 原有 headers 逻辑保持不变
     let headers: string[];
     switch (report.type) {
       case ReportType.SUMMARY:
-        headers = ['ID', '企业名称', '飞桨_文心', '优先级', '伙伴等级', '注册资本(万)', '参保人数', '地区'];
+        headers = ['ID', '企业名称', '优先级', '飞桨/文心', '大模型版本', 'API月调用量', '落地阶段', '地区'];
         break;
       case ReportType.DETAILED:
-        headers = ['ID', '企业名称', '飞桨_文心', '线索入库时间', '伙伴等级', '生态AI产品', '优先级', '地区', '注册资本', '参保人数', '企业背景', '行业', '任务方向', '联系人信息', '使用场景'];
-        break;
-      case ReportType.PRIORITY:
-        headers = ['ID', '企业名称', '优先级', '飞桨_文心', '伙伴等级', '注册资本(万)', '参保人数'];
+        headers = [
+          'ID', '企业名称', '统一社会信用代码', '法定代表人', '优先级', '伙伴等级', 
+          '文心版本', '飞桨深度', 'API月调用量', '落地阶段', 
+          '是否高新', '是否专精特新', '行业', '任务方向', '联系人信息'
+        ];
         break;
       case ReportType.AI_USAGE:
-        headers = ['ID', '企业名称', '飞桨_文心', '生态AI产品', '使用场景', '优先级', '伙伴等级'];
-        break;
-      case ReportType.REGIONAL:
-        headers = ['ID', '企业名称', '地区', '飞桨_文心', '优先级', '注册资本(万)', '参保人数'];
+        headers = ['ID', '企业名称', '文心版本', '飞桨模型', 'API月调用', '算力模式', '落地阶段', '提示词模板数'];
         break;
       case ReportType.PARTNER:
-        headers = ['ID', '企业名称', '伙伴等级', '飞桨_文心', '优先级', '注册资本(万)', '参保人数'];
+        headers = ['ID', '企业名称', '伙伴能级', '项目身份', '认证证书', '联合方案', '活动参与', '是否百度投资'];
         break;
       default:
-        headers = ['ID', '企业名称', '飞桨_文心', '优先级', '伙伴等级', '注册资本', '参保人数', '地区'];
+        headers = ['ID', '企业名称', '优先级', '地区', '注册资本', '参保人数'];
     }
 
     // Set headers
     headers.forEach((header, index) => {
       const column = index + 1;
       worksheet.cell(1, column).string(header).style({
-        font: { bold: true },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: '#E6E6E6' }
+        font: { bold: true, color: '#FFFFFF' },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: '#1e293b' } 
       });
     });
 
     // Fill data rows
     enterprises.forEach((enterprise, rowIndex) => {
-      const row = rowIndex + 2; // Start from row 2
+      const row = rowIndex + 2;
       worksheet.cell(row, 1).number(enterprise.id);
-      worksheet.cell(row, 2).string(enterprise.企业名称 || '');
-      worksheet.cell(row, 3).string(enterprise.飞桨_文心 || '');
+      worksheet.cell(row, 2).string(enterprise.enterpriseName || '');
       
-      switch (report.type) {
-        case ReportType.SUMMARY:
-        case ReportType.DETAILED:
-        case ReportType.PRIORITY:
-        case ReportType.AI_USAGE:
-        case ReportType.REGIONAL:
-        case ReportType.PARTNER:
-          // Add appropriate columns based on report type
-          worksheet.cell(row, 4).string(enterprise.优先级 || '');
-          worksheet.cell(row, 5).string(enterprise.伙伴等级 || '');
-          if (enterprise.注册资本 !== undefined && enterprise.注册资本 !== null) {
-            worksheet.cell(row, 6).number(Number(enterprise.注册资本) / 10000); // Convert to 万
-          } else {
-            worksheet.cell(row, 6).string('');
-          }
-          if (enterprise.参保人数 !== undefined && enterprise.参保人数 !== null) {
-            worksheet.cell(row, 7).number(Number(enterprise.参保人数));
-          } else {
-            worksheet.cell(row, 7).string('');
-          }
-          worksheet.cell(row, 8).string(enterprise.base || '');
-          break;
-        default:
-          worksheet.cell(row, 4).string(enterprise.优先级 || '');
-          worksheet.cell(row, 5).string(enterprise.伙伴等级 || '');
-          if (enterprise.注册资本 !== undefined && enterprise.注册资本 !== null) {
-            worksheet.cell(row, 6).number(Number(enterprise.注册资本));
-          } else {
-            worksheet.cell(row, 6).string('');
-          }
-          if (enterprise.参保人数 !== undefined && enterprise.参保人数 !== null) {
-            worksheet.cell(row, 7).number(Number(enterprise.参保人数));
-          } else {
-            worksheet.cell(row, 7).string('');
-          }
-          worksheet.cell(row, 8).string(enterprise.base || '');
+      if (report.type === ReportType.SUMMARY) {
+        worksheet.cell(row, 3).string(enterprise.priority || '');
+        worksheet.cell(row, 4).string(enterprise.feijiangWenxin || '');
+        worksheet.cell(row, 5).string(enterprise.ernieModelType || '-');
+        worksheet.cell(row, 6).number(Number(enterprise.avgMonthlyApiCalls || 0));
+        worksheet.cell(row, 7).string(enterprise.aiImplementationStage || '-');
+        worksheet.cell(row, 8).string(enterprise.base || '');
+      } else if (report.type === ReportType.DETAILED) {
+        worksheet.cell(row, 3).string(enterprise.unifiedSocialCreditCode || '-');
+        worksheet.cell(row, 4).string(enterprise.legalRepresentative || '-');
+        worksheet.cell(row, 5).string(enterprise.priority || '');
+        worksheet.cell(row, 6).string(enterprise.partnerLevel || '');
+        worksheet.cell(row, 7).string(enterprise.ernieModelType || '-');
+        worksheet.cell(row, 8).string(enterprise.paddleUsageLevel || '-');
+        worksheet.cell(row, 9).number(Number(enterprise.avgMonthlyApiCalls || 0));
+        worksheet.cell(row, 10).string(enterprise.aiImplementationStage || '-');
+        worksheet.cell(row, 11).string(enterprise.isHighTech ? '是' : '否');
+        worksheet.cell(row, 12).string(enterprise.isSpecialized ? '是' : '否');
+        worksheet.cell(row, 13).string(JSON.stringify(enterprise.industry || ''));
+        worksheet.cell(row, 14).string(enterprise.taskDirection || '');
+        worksheet.cell(row, 15).string(enterprise.contactInfo || '');
+      } else if (report.type === ReportType.PARTNER) {
+        worksheet.cell(row, 3).string(enterprise.partnerLevel || '');
+        worksheet.cell(row, 4).string(enterprise.partnerProgramType || '-');
+        worksheet.cell(row, 5).string(Array.isArray(enterprise.baiduCertificates) ? enterprise.baiduCertificates.join(',') : '-');
+        worksheet.cell(row, 6).string(Array.isArray(enterprise.jointSolutions) ? enterprise.jointSolutions.join(',') : '-');
+        worksheet.cell(row, 7).string(Array.isArray(enterprise.eventParticipation) ? `${enterprise.eventParticipation.length} 次` : '0');
+        worksheet.cell(row, 8).string(enterprise.isBaiduVenture ? '是' : '否');
+      } else {
+        worksheet.cell(row, 3).string(enterprise.priority || '');
+        worksheet.cell(row, 4).string(enterprise.base || '');
+        worksheet.cell(row, 5).number(Number(enterprise.registeredCapital || 0));
+        worksheet.cell(row, 6).number(Number(enterprise.employeeCount || 0));
       }
     });
 

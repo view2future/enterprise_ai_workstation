@@ -14,17 +14,40 @@ import {
   X,
   SlidersHorizontal,
   Save,
-  RotateCcw
+  RotateCcw,
+  Target
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { NeubrutalCard, NeubrutalButton, NeubrutalInput, NeubrutalSelect } from '../../components/ui/neubrutalism/NeubrutalComponents';
 
 const EnterprisesPage: React.FC = () => {
-  const [filters, setFilters] = useState<EnterpriseFilter>({});
+  const [searchParams] = useSearchParams();
+  const [filters, setFilters] = useState<EnterpriseFilter>({
+    priority: searchParams.get('priority') || undefined,
+    feijiangWenxin: searchParams.get('feijiangWenxin') || undefined,
+    base: searchParams.get('base') || undefined,
+  });
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [savedFilters, setSavedFilters] = useState<any[]>([]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // 监听 URL 参数变化并更新过滤器
+  React.useEffect(() => {
+    const base = searchParams.get('base');
+    const priority = searchParams.get('priority');
+    const feijiangWenxin = searchParams.get('feijiangWenxin');
+    
+    if (base || priority || feijiangWenxin) {
+      setFilters(prev => ({
+        ...prev,
+        base: base || undefined,
+        priority: priority || undefined,
+        feijiangWenxin: feijiangWenxin || undefined,
+        page: 0
+      }));
+    }
+  }, [searchParams]);
 
   // 获取企业列表
   const { data: enterprisesData, isLoading, error, refetch } = useQuery({
@@ -43,33 +66,41 @@ const EnterprisesPage: React.FC = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    queryClient.invalidateQueries({ queryKey: ['enterprises'] });
     refetch();
   };
 
   const handleClearFilters = () => {
-    setFilters({});
-    refetch();
+    setFilters({
+      page: 0,
+      limit: 50
+    });
+    // 清除 URL 参数
+    navigate('/enterprises', { replace: true });
   };
 
   const handleDelete = async (id: number) => {
     if (window.confirm('确定要删除这个企业吗？')) {
       try {
         await enterpriseApi.deleteEnterprise(id);
-        queryClient.invalidateQueries({ queryKey: ['enterprises'] });
+        // 立即失效查询以触发表格刷新
+        await queryClient.invalidateQueries({ queryKey: ['enterprises'] });
+        alert('删除成功');
       } catch (error) {
         console.error('删除企业失败:', error);
+        alert('删除失败，请稍后重试');
       }
     }
   };
 
   // 高级筛选条件
   const [advancedFilters, setAdvancedFilters] = useState({
-    注册资本_min: '',
-    注册资本_max: '',
-    参保人数_min: '',
-    参保人数_max: '',
-    行业: '',
-    任务方向: '',
+    registeredCapitalMin: '',
+    registeredCapitalMax: '',
+    employeeCountMin: '',
+    employeeCountMax: '',
+    industry: '',
+    taskDirection: '',
   });
 
   const handleAdvancedFilterChange = (key: string, value: string) => {
@@ -103,12 +134,12 @@ const EnterprisesPage: React.FC = () => {
   const applySavedFilter = (savedFilter: any) => {
     setFilters(savedFilter.filters);
     setAdvancedFilters({
-      注册资本_min: savedFilter.filters.注册资本_min || '',
-      注册资本_max: savedFilter.filters.注册资本_max || '',
-      参保人数_min: savedFilter.filters.参保人数_min || '',
-      参保人数_max: savedFilter.filters.参保人数_max || '',
-      行业: savedFilter.filters.行业 || '',
-      任务方向: savedFilter.filters.任务方向 || '',
+      registeredCapitalMin: savedFilter.filters.registeredCapitalMin || '',
+      registeredCapitalMax: savedFilter.filters.registeredCapitalMax || '',
+      employeeCountMin: savedFilter.filters.employeeCountMin || '',
+      employeeCountMax: savedFilter.filters.employeeCountMax || '',
+      industry: savedFilter.filters.industry || '',
+      taskDirection: savedFilter.filters.taskDirection || '',
     });
     refetch();
   };
@@ -124,6 +155,22 @@ const EnterprisesPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* 决策路径提示 */}
+      {(filters.priority || filters.feijiangWenxin || filters.base) && (
+        <div className="bg-yellow-100 border-4 border-gray-800 p-4 flex items-center justify-between shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div className="flex items-center gap-2">
+            <Target className="text-yellow-800" />
+            <span className="font-black text-sm uppercase">当前决策钻取路径：</span>
+            <div className="flex gap-2">
+              {filters.priority && <span className="bg-gray-800 text-white px-2 py-0.5 text-[10px] rounded">优先级: {filters.priority}</span>}
+              {filters.feijiangWenxin && <span className="bg-gray-800 text-white px-2 py-0.5 text-[10px] rounded">技术: {filters.feijiangWenxin}</span>}
+              {filters.base && <span className="bg-gray-800 text-white px-2 py-0.5 text-[10px] rounded">地区: {filters.base}</span>}
+            </div>
+          </div>
+          <button onClick={handleClearFilters} className="text-xs font-black underline hover:text-red-600">重置指挥视图</button>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">企业管理</h1>
@@ -165,8 +212,8 @@ const EnterprisesPage: React.FC = () => {
             <div>
               <NeubrutalSelect
                 label="飞桨/文心"
-                value={filters.飞桨_文心 || ''}
-                onChange={(e) => handleFilterChange('飞桨_文心', e.target.value)}
+                value={filters.feijiangWenxin || ''}
+                onChange={(e) => handleFilterChange('feijiangWenxin', e.target.value)}
               >
                 <option value="">全部</option>
                 <option value="飞桨">飞桨</option>
@@ -177,8 +224,8 @@ const EnterprisesPage: React.FC = () => {
             <div>
               <NeubrutalSelect
                 label="优先级"
-                value={filters.优先级 || ''}
-                onChange={(e) => handleFilterChange('优先级', e.target.value)}
+                value={filters.priority || ''}
+                onChange={(e) => handleFilterChange('priority', e.target.value)}
               >
                 <option value="">全部</option>
                 <option value="P0">P0</option>
@@ -190,8 +237,8 @@ const EnterprisesPage: React.FC = () => {
             <div>
               <NeubrutalSelect
                 label="伙伴等级"
-                value={filters.伙伴等级 || ''}
-                onChange={(e) => handleFilterChange('伙伴等级', e.target.value)}
+                value={filters.partnerLevel || ''}
+                onChange={(e) => handleFilterChange('partnerLevel', e.target.value)}
               >
                 <option value="">全部</option>
                 <option value="认证级">认证级</option>
@@ -209,8 +256,8 @@ const EnterprisesPage: React.FC = () => {
                   <NeubrutalInput
                     label="注册资本(万) 最小值"
                     type="number"
-                    value={advancedFilters.注册资本_min}
-                    onChange={(e) => handleAdvancedFilterChange('注册资本_min', e.target.value)}
+                    value={advancedFilters.registeredCapitalMin}
+                    onChange={(e) => handleAdvancedFilterChange('registeredCapitalMin', e.target.value)}
                     placeholder="最小值"
                   />
                 </div>
@@ -219,8 +266,8 @@ const EnterprisesPage: React.FC = () => {
                   <NeubrutalInput
                     label="注册资本(万) 最大值"
                     type="number"
-                    value={advancedFilters.注册资本_max}
-                    onChange={(e) => handleAdvancedFilterChange('注册资本_max', e.target.value)}
+                    value={advancedFilters.registeredCapitalMax}
+                    onChange={(e) => handleAdvancedFilterChange('registeredCapitalMax', e.target.value)}
                     placeholder="最大值"
                   />
                 </div>
@@ -229,8 +276,8 @@ const EnterprisesPage: React.FC = () => {
                   <NeubrutalInput
                     label="参保人数 最小值"
                     type="number"
-                    value={advancedFilters.参保人数_min}
-                    onChange={(e) => handleAdvancedFilterChange('参保人数_min', e.target.value)}
+                    value={advancedFilters.employeeCountMin}
+                    onChange={(e) => handleAdvancedFilterChange('employeeCountMin', e.target.value)}
                     placeholder="最小值"
                   />
                 </div>
@@ -239,8 +286,8 @@ const EnterprisesPage: React.FC = () => {
                   <NeubrutalInput
                     label="参保人数 最大值"
                     type="number"
-                    value={advancedFilters.参保人数_max}
-                    onChange={(e) => handleAdvancedFilterChange('参保人数_max', e.target.value)}
+                    value={advancedFilters.employeeCountMax}
+                    onChange={(e) => handleAdvancedFilterChange('employeeCountMax', e.target.value)}
                     placeholder="最大值"
                   />
                 </div>
@@ -248,8 +295,8 @@ const EnterprisesPage: React.FC = () => {
                 <div>
                   <NeubrutalInput
                     label="行业"
-                    value={advancedFilters.行业}
-                    onChange={(e) => handleAdvancedFilterChange('行业', e.target.value)}
+                    value={advancedFilters.industry}
+                    onChange={(e) => handleAdvancedFilterChange('industry', e.target.value)}
                     placeholder="行业关键词"
                   />
                 </div>
@@ -257,8 +304,8 @@ const EnterprisesPage: React.FC = () => {
                 <div>
                   <NeubrutalInput
                     label="任务方向"
-                    value={advancedFilters.任务方向}
-                    onChange={(e) => handleAdvancedFilterChange('任务方向', e.target.value)}
+                    value={advancedFilters.taskDirection}
+                    onChange={(e) => handleAdvancedFilterChange('taskDirection', e.target.value)}
                     placeholder="任务方向关键词"
                   />
                 </div>
@@ -368,40 +415,45 @@ const EnterprisesPage: React.FC = () => {
                 {enterprisesData?.items.map((enterprise) => (
                   <tr key={enterprise.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{enterprise.企业名称}</div>
+                      <div className="text-sm font-medium text-gray-900">{enterprise.enterpriseName}</div>
+                      {enterprise.unifiedSocialCreditCode && (
+                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                          {enterprise.unifiedSocialCreditCode}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        enterprise.飞桨_文心 === '飞桨' 
+                        enterprise.feijiangWenxin === '飞桨' 
                           ? 'bg-blue-100 text-blue-800' 
-                          : enterprise.飞桨_文心 === '文心' 
+                          : enterprise.feijiangWenxin === '文心' 
                             ? 'bg-purple-100 text-purple-800' 
                             : 'bg-gray-100 text-gray-800'
                       }`}>
-                        {enterprise.飞桨_文心 || '-'}
+                        {enterprise.feijiangWenxin || '-'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        enterprise.优先级 === 'P0' 
+                        enterprise.priority === 'P0' 
                           ? 'bg-red-100 text-red-800' 
-                          : enterprise.优先级 === 'P1' 
+                          : enterprise.priority === 'P1' 
                             ? 'bg-yellow-100 text-yellow-800' 
-                            : enterprise.优先级 === 'P2' 
+                            : enterprise.priority === 'P2' 
                               ? 'bg-green-100 text-green-800' 
                               : 'bg-gray-100 text-gray-800'
                       }`}>
-                        {enterprise.优先级 || '-'}
+                        {enterprise.priority || '-'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {enterprise.伙伴等级 || '-'}
+                      {enterprise.partnerLevel || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {enterprise.注册资本 ? `${(enterprise.注册资本 / 10000).toFixed(2)}万` : '-'}
+                      {enterprise.registeredCapital ? `${(Number(enterprise.registeredCapital) / 10000).toFixed(2)}万` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {enterprise.参保人数 || '-'}
+                      {enterprise.employeeCount || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {enterprise.base || '-'}
@@ -419,7 +471,7 @@ const EnterprisesPage: React.FC = () => {
                         <NeubrutalButton
                           size="sm"
                           variant="success"
-                          onClick={() => console.log('Edit', enterprise.id)}
+                          onClick={() => navigate(`/enterprises/${enterprise.id}/edit`)}
                           title="编辑"
                         >
                           <Edit size={16} />

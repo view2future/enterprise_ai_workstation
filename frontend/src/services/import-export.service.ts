@@ -20,7 +20,7 @@ export interface ImportResult {
 export const importExportApi = {
   // 导出企业数据
   exportEnterprises: (filters?: any) => {
-    return apiClient.get('/import-export/export', { 
+    return apiClient.get('/data/export', { 
       params: filters,
       responseType: 'blob' // 用于文件下载
     });
@@ -31,7 +31,7 @@ export const importExportApi = {
     const formData = new FormData();
     formData.append('file', file);
     
-    return apiClient.post<ImportResult>('/import-export/import', formData, {
+    return apiClient.post<ImportResult>('/data/import', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -40,6 +40,6 @@ export const importExportApi = {
 
   // 获取导入模板
   getImportTemplate: () => {
-    return apiClient.get<ImportTemplate>('/import-export/template');
+    return apiClient.get<ImportTemplate>('/data/template');
   }
 };

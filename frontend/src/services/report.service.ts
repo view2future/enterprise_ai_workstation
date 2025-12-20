@@ -37,10 +37,10 @@ export interface Report {
   fileName?: string;
   dataCount: number;
   progress: number;
-  created_at: string;
-  updated_at: string;
-  completed_at?: string;
-  created_by?: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  createdBy?: string;
   errorMessage?: string;
 }
 

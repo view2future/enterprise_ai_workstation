@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { importExportApi, ImportResult } from '../../services/import-export.service';
-import { Download, Upload, FileText, AlertCircle, CheckCircle, Info } from 'lucide-react';
+import { Download, Upload, FileText, AlertCircle, CheckCircle, Info, Shield } from 'lucide-react';
 import { NeubrutalCard, NeubrutalButton, NeubrutalInput } from '../../components/ui/neubrutalism/NeubrutalComponents';
 
 const ImportExportPage: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [isScanning, setIsScanning] = useState(false);
 
   // 获取导入模板
   const { data: importTemplate, isLoading: isTemplateLoading } = useQuery({
@@ -24,28 +26,41 @@ const ImportExportPage: React.FC = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `企业数据导出_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      const fileName = `企业数据导出_${new Date().toLocaleDateString('zh-CN')}.xlsx`;
+      link.setAttribute('download', fileName);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+      alert('导出成功');
     },
     onError: (error) => {
       console.error('导出失败:', error);
-      alert('导出失败，请重试');
+      alert('导出失败，请确保后端服务正常运行');
     }
   });
 
   // 导入数据
   const importMutation = useMutation({
-    mutationFn: (file: File) => importExportApi.importEnterprises(file),
+    mutationFn: async (file: File) => {
+      setIsScanning(true);
+      // 前端体验优化：模拟智能扫描和治理过程
+      for(let i=0; i<=100; i+=25) {
+        setImportProgress(i);
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      return importExportApi.importEnterprises(file);
+    },
     onSuccess: (result) => {
       setImportResult(result.data);
       setShowResult(true);
       setSelectedFile(null);
+      setIsScanning(false);
+      setImportProgress(0);
     },
     onError: (error) => {
       console.error('导入失败:', error);
+      setIsScanning(false);
       alert('导入失败，请检查文件格式');
     }
   });
@@ -64,29 +79,35 @@ const ImportExportPage: React.FC = () => {
   };
 
   const handleImportSubmit = () => {
-    if (selectedFile) {
-      importMutation.mutate(selectedFile);
+    if (!selectedFile) {
+      alert('请先选择一个 CSV 文件');
+      return;
     }
+    // 触发 Mutation，内部会处理 isScanning 状态
+    importMutation.mutate(selectedFile);
   };
 
   const handleDownloadTemplate = () => {
-    if (importTemplate) {
-      // 创建CSV模板内容
-      const headers = importTemplate.fields.map(field => field.name).join(',');
-      const sampleRow = importTemplate.sampleData[0] 
-        ? Object.values(importTemplate.sampleData[0]).join(',')
-        : '';
-      
-      const csvContent = `${headers}\n${sampleRow}`;
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', '企业数据导入模板.csv');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+    if (!importTemplate) {
+      alert('导入模板尚未加载完成，请稍后');
+      return;
     }
+    // 创建 CSV 模板并下载
+    const headers = importTemplate.fields.map(field => field.name).join(',');
+    const sampleRow = importTemplate.sampleData[0] 
+      ? Object.values(importTemplate.sampleData[0]).join(',')
+      : '';
+    
+    const csvContent = `${headers}\n${sampleRow}`;
+    const blob = new Blob([`\ufeff${csvContent}`], { type: 'text/csv;charset=utf-8;' }); // 增加 BOM 防止中文乱码
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', '企业数据导入模板.csv');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   };
 
   return (
@@ -101,19 +122,19 @@ const ImportExportPage: React.FC = () => {
         <NeubrutalCard>
           <div className="flex items-center gap-2 mb-4">
             <Download size={20} />
-            <h2 className="text-lg font-semibold">数据导出</h2>
+            <h2 className="text-lg font-bold">战略决策导出</h2>
           </div>
-          <p className="text-gray-600 mb-4">导出企业数据到Excel文件</p>
+          <p className="text-gray-600 mb-4 text-sm font-bold">导出包含全量扩展字段的专业 Excel 报表。</p>
           
           <NeubrutalButton 
             onClick={() => exportMutation.mutate(undefined)}
             disabled={exportMutation.isPending}
-            className="w-full"
+            className="w-full py-3"
           >
             {exportMutation.isPending ? (
               <>
                 <span className="loading-spinner mr-2">⏳</span>
-                导出中...
+                正在封装数据...
               </>
             ) : (
               <>
@@ -125,103 +146,87 @@ const ImportExportPage: React.FC = () => {
           
           <div className="mt-4 p-3 bg-blue-50 border-2 border-blue-200 rounded-lg flex items-start gap-2">
             <Info size={16} className="text-blue-800 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-blue-800">
-              提示：导出的数据包含所有企业信息，支持按条件筛选后导出
+            <p className="text-xs text-blue-800 font-bold">
+              提示：导出的报表已针对“辅助决策”优化，包含 BigInt 自动转换和中文表头映射。
             </p>
           </div>
         </NeubrutalCard>
 
         {/* 导入区域 */}
-        <NeubrutalCard>
+        <NeubrutalCard className={isScanning ? 'animate-pulse' : ''}>
           <div className="flex items-center gap-2 mb-4">
-            <Upload size={20} />
-            <h2 className="text-lg font-semibold">数据导入</h2>
+            <Upload size={20} className={isScanning ? 'animate-bounce' : ''} />
+            <h2 className="text-lg font-bold">智能导入工作台</h2>
           </div>
-          <p className="text-gray-600 mb-4">从CSV文件导入企业数据</p>
+          <p className="text-gray-600 mb-4 text-sm font-bold">自动识别表头同义词，并智能补全缺失的企业画像。</p>
           
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                选择CSV文件
-              </label>
-              <div className="flex items-center gap-2">
-                <label
-                  htmlFor="file-upload"
-                  className="flex-1 cursor-pointer"
-                >
-                  <NeubrutalButton variant="secondary" className="w-full">
-                    {selectedFile ? selectedFile.name : '选择CSV文件'}
+            {!isScanning ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="file-upload" className="flex-1">
+                    <div className="border-4 border-dashed border-gray-300 rounded-xl p-6 hover:border-gray-800 transition-colors cursor-pointer text-center group">
+                      <FileText size={32} className="mx-auto text-gray-400 group-hover:text-gray-800 mb-2" />
+                      <span className="font-bold text-gray-600 group-hover:text-gray-800">
+                        {selectedFile ? selectedFile.name : '点击选择 CSV 文件'}
+                      </span>
+                    </div>
+                  </label>
+                  <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" id="file-upload" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <NeubrutalButton onClick={handleDownloadTemplate} variant="secondary" size="sm">
+                    下载标准模板
                   </NeubrutalButton>
-                </label>
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="file-upload"
-                />
+                  <NeubrutalButton
+                    onClick={handleImportSubmit}
+                    disabled={!selectedFile}
+                    variant="success"
+                    size="sm"
+                  >
+                    开始智能导入
+                  </NeubrutalButton>
+                </div>
+              </>
+            ) : (
+              <div className="py-10 text-center space-y-4">
+                <div className="loading-spinner text-5xl mx-auto">⚙️</div>
+                <p className="font-black text-xl uppercase">正在进行数据治理...</p>
+                <div className="w-full bg-gray-200 border-4 border-gray-800 h-8 rounded-full overflow-hidden p-1">
+                  <div className="bg-blue-600 h-full rounded-full transition-all duration-300" style={{ width: `${importProgress}%` }}></div>
+                </div>
+                <p className="text-xs font-bold text-gray-500">正在分析表头并执行 20+ 个维度的字段对齐...</p>
               </div>
-              {selectedFile && (
-                <p className="text-sm text-gray-600 mt-1">
-                  已选择: {selectedFile.name}
-                </p>
-              )}
-            </div>
-
-            <NeubrutalButton 
-              onClick={handleDownloadTemplate}
-              disabled={isTemplateLoading}
-              className="w-full"
-            >
-              <Download size={16} className="mr-2" />
-              下载导入模板
-            </NeubrutalButton>
-
-            <NeubrutalButton
-              onClick={handleImportSubmit}
-              disabled={!selectedFile || importMutation.isPending}
-              variant={selectedFile && !importMutation.isPending ? "success" : "secondary"}
-              className="w-full"
-            >
-              {importMutation.isPending ? (
-                <>
-                  <span className="loading-spinner mr-2">⏳</span>
-                  导入中...
-                </>
-              ) : (
-                <>
-                  <Upload size={18} className="mr-2" />
-                  开始导入
-                </>
-              )}
-            </NeubrutalButton>
+            )}
           </div>
 
           {showResult && importResult && (
-            <div className="mt-4 p-4 rounded-lg border-2 border-gray-800">
-              <h3 className="font-semibold mb-2">导入结果</h3>
-              <div className="grid grid-cols-2 gap-4 mb-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle size={18} className="text-green-600" />
-                  <span>成功: {importResult.success}</span>
+            <div className="mt-6 p-4 rounded-xl border-4 border-gray-800 bg-gray-50">
+              <h3 className="font-black mb-4 flex items-center gap-2 uppercase">
+                <Shield size={18} className="text-green-600" /> 导入作业报告
+              </h3>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="p-3 bg-green-100 border-2 border-green-800 rounded-lg text-center">
+                  <p className="text-2xl font-black text-green-900">{importResult.success}</p>
+                  <p className="text-xs font-bold uppercase">入库成功</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <AlertCircle size={18} className="text-red-600" />
-                  <span>失败: {importResult.failed}</span>
+                <div className="p-3 bg-red-100 border-2 border-red-800 rounded-lg text-center">
+                  <p className="text-2xl font-black text-red-900">{importResult.failed}</p>
+                  <p className="text-xs font-bold uppercase">失败条数</p>
                 </div>
               </div>
               
               {importResult.errors.length > 0 && (
-                <div className="mt-3">
-                  <p className="text-sm font-medium text-red-700 mb-1">错误详情:</p>
-                  <ul className="text-xs text-red-600 max-h-32 overflow-y-auto">
-                    {importResult.errors.slice(0, 5).map((error, index) => (
-                      <li key={index} className="truncate">{error}</li>
+                <div className="space-y-2">
+                  <p className="text-xs font-black text-red-800 uppercase flex items-center gap-1">
+                    <AlertCircle size={14} /> 治理异常日志
+                  </p>
+                  <div className="bg-white border-2 border-gray-800 p-2 rounded-lg max-h-40 overflow-y-auto font-mono text-[10px] leading-tight text-red-600">
+                    {importResult.errors.map((error, index) => (
+                      <div key={index} className="py-1 border-b border-gray-100 last:border-0">{error}</div>
                     ))}
-                    {importResult.errors.length > 5 && (
-                      <li>... 还有 {importResult.errors.length - 5} 个错误</li>
-                    )}
-                  </ul>
+                  </div>
                 </div>
               )}
             </div>

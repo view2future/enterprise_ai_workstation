@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { reportApi, ReportType, ReportFormat, ReportStatus, CreateReportDto } from '../../services/report.service';
+import { dashboardApi } from '../../services/dashboard.service';
 import { NeubrutalCard, NeubrutalButton, NeubrutalInput, NeubrutalSelect } from '../../components/ui/neubrutalism/NeubrutalComponents';
 
 const ReportsPage: React.FC = () => {
@@ -31,6 +32,14 @@ const ReportsPage: React.FC = () => {
   const [filters, setFilters] = useState<any>({});
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const queryClient = useQueryClient();
+
+  // 获取实时统计数据用于预览
+  const { data: overviewData } = useQuery({
+    queryKey: ['dashboard', 'overview-for-report'],
+    queryFn: () => dashboardApi.getOverview().then(res => res.data),
+  });
+
+  const statsData = overviewData?.stats;
 
   const reportTypes = [
     { id: ReportType.SUMMARY, label: '数据概览报告', icon: BarChart3 },
@@ -76,18 +85,35 @@ const ReportsPage: React.FC = () => {
     createReportMutation.mutate(createData);
   };
 
-  const handleDownloadReport = (id: number) => {
-    reportApi.downloadReport(id).then(response => {
-      // 创建下载链接
+  const handleDownloadReport = (report: any) => {
+    reportApi.downloadReport(report.id).then(response => {
+      // 获取内容类型对应的后缀
+      const extension = report.format === 'excel' ? 'xlsx' : report.format;
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `report_${id}.download`);
+      link.setAttribute('download', `${report.title}_${new Date().getTime()}.${extension}`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+    }).catch(err => {
+      console.error('下载失败:', err);
+      alert('下载失败，请检查文件是否存在');
     });
+  };
+
+  const handleDeleteReport = async (id: number) => {
+    if (window.confirm('确定要删除这分报告吗？')) {
+      try {
+        await reportApi.deleteReport(id);
+        queryClient.invalidateQueries({ queryKey: ['reports'] });
+        alert('报告已删除');
+      } catch (error) {
+        console.error('删除报告失败:', error);
+        alert('删除失败');
+      }
+    }
   };
 
   const getStatusIcon = (status: ReportStatus) => {
@@ -298,7 +324,7 @@ const ReportsPage: React.FC = () => {
                           <NeubrutalButton
                             size="sm"
                             variant="success"
-                            onClick={() => handleDownloadReport(report.id)}
+                            onClick={() => handleDownloadReport(report)}
                             title="下载报告"
                           >
                             <DownloadIcon size={16} />
@@ -307,7 +333,7 @@ const ReportsPage: React.FC = () => {
                         <NeubrutalButton
                           size="sm"
                           variant="danger"
-                          onClick={() => console.log('Delete report', report.id)}
+                          onClick={() => handleDeleteReport(report.id)}
                           title="删除报告"
                         >
                           <X size={16} />
@@ -316,7 +342,7 @@ const ReportsPage: React.FC = () => {
                     </div>
                     
                     <p className="text-xs text-gray-600 mt-2">
-                      生成时间: {new Date(report.created_at).toLocaleString('zh-CN')}
+                      生成时间: {new Date(report.createdAt).toLocaleString('zh-CN')}
                     </p>
                   </div>
                 ))}
@@ -349,16 +375,22 @@ const ReportsPage: React.FC = () => {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
                   <div className="p-4 bg-white border-2 border-gray-800 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">526</div>
-                    <div className="text-sm text-gray-600">企业总数</div>
+                    <div className="text-2xl font-black text-blue-600">
+                      {statsData?.totalEnterprises || '0'}
+                    </div>
+                    <div className="text-xs font-bold text-gray-500 uppercase">覆盖企业总数</div>
                   </div>
                   <div className="p-4 bg-white border-2 border-gray-800 rounded-lg">
-                    <div className="text-2xl font-bold text-red-600">89</div>
-                    <div className="text-sm text-gray-600">P0优先级</div>
+                    <div className="text-2xl font-black text-purple-600">
+                      {statsData?.stageStats?.find((s: any) => s.aiImplementationStage === '全面生产')?._count?._all || 0}
+                    </div>
+                    <div className="text-xs font-bold text-gray-500 uppercase">已投产方案数</div>
                   </div>
                   <div className="p-4 bg-white border-2 border-gray-800 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">52.1%</div>
-                    <div className="text-sm text-gray-600">成都占比</div>
+                    <div className="text-2xl font-black text-green-600">
+                      {statsData?.totalApiCalls ? (Number(statsData.totalApiCalls) / 10000).toFixed(1) + 'W' : '0'}
+                    </div>
+                    <div className="text-xs font-bold text-gray-500 uppercase">月均总调用量</div>
                   </div>
                 </div>
               </div>

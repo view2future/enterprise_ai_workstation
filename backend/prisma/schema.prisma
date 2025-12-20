@@ -46,6 +46,46 @@ model Enterprise {
   updatedAt         DateTime @updatedAt
   createdBy         String?
   updatedBy         String?
+
+  // 企业自身信息完善
+  unifiedSocialCreditCode String?   @map("统一社会信用代码")
+  legalRepresentative     String?   @map("法定代表人")
+  establishmentDate       DateTime? @map("成立日期")
+  enterpriseType          String?   @map("企业类型")
+  annualRevenue           String?   @map("年度营收规模")
+  techStaffCount          Int?      @map("技术研发人数")
+  isHighTech              Boolean?  @default(false) @map("是否高新企业")
+  isSpecialized           Boolean?  @default(false) @map("是否专精特新")
+  website                 String?   @map("公司官网")
+  officeAddress           String?   @map("详细办公地址")
+
+  // 百度AI技术应用
+  paddleUsageLevel        String?   @map("飞桨应用深度")
+  paddleModels            Json?     @map("飞桨具体模型")
+  paddleTrainingType      String?   @map("飞桨训练模式")
+  ernieModelType          String?   @map("文心大模型版本")
+  ernieAppScenarios       Json?     @map("文心应用场景")
+  promptTemplateCount     Int?      @default(0) @map("提示词模板数")
+  avgMonthlyApiCalls      BigInt?   @default(0) @map("月均API调用量")
+  peakApiCalls            Int?      @default(0) @map("峰值并发量")
+  inferenceComputeType    String?   @map("推理算力类型")
+  aiImplementationStage   String?   @map("AI落地阶段")
+
+  // 生态合作与活动
+  partnerProgramType      String?   @map("生态项目类别")
+  baiduCertificates       Json?     @map("百度AI认证证书")
+  eventParticipation      Json?     @map("参与活动记录")
+  jointSolutions          Json?     @map("联合解决方案")
+  isBaiduVenture          Boolean?  @default(false) @map("百度是否投资")
+  trainingRecord          Json?     @map("技术培训记录")
+  awardsReceived          Json?     @map("获奖记录")
+  lastContactDept         String?   @map("百度最近对接部门")
+
+  // 数据灾备与审计
+  dataIntegrityHash       String?   @map("数据完整性哈希")
+  lastAuditTime           DateTime? @map("最后审计时间")
+  isArchived              Boolean   @default(false) @map("是否已归档")
+  dataSourceType          String?   @default("manual") @map("数据来源")
   
   @@map("enterprises")
 }

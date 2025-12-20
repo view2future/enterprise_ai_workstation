@@ -15,6 +15,7 @@ export class EnterprisesService {
       priority,
       industry,
       taskDirection,
+      base,
       registeredCapitalMin,
       registeredCapitalMax,
       employeeCountMin,
@@ -28,30 +29,12 @@ export class EnterprisesService {
     // Build where clause
     const whereClause: any = { status: 'active' };
 
-    if (search) {
-      whereClause.OR = [
-        { enterpriseName: { contains: search, mode: 'insensitive' } },
-        { enterpriseBackground: { contains: search, mode: 'insensitive' } },
-        { usageScenario: { contains: search, mode: 'insensitive' } },
-        { ecoAIProducts: { contains: search, mode: 'insensitive' } },
-        { contactInfo: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    if (feijiangWenxin) {
-      whereClause.feijiangWenxin = feijiangWenxin;
-    }
-
-    if (clueInTime) {
-      whereClause.clueInTime = clueInTime;
-    }
-
-    if (partnerLevel) {
-      whereClause.partnerLevel = partnerLevel;
-    }
-
     if (priority) {
       whereClause.priority = priority;
+    }
+
+    if (base) {
+      whereClause.base = { contains: base, mode: 'insensitive' };
     }
 
     if (taskDirection) {
@@ -139,6 +122,35 @@ export class EnterprisesService {
       status: 'active',
       createdAt: new Date(),
       updatedAt: new Date(),
+      
+      // 扩展字段
+      unifiedSocialCreditCode: createEnterpriseDto.unifiedSocialCreditCode,
+      legalRepresentative: createEnterpriseDto.legalRepresentative,
+      enterpriseType: createEnterpriseDto.enterpriseType,
+      annualRevenue: createEnterpriseDto.annualRevenue,
+      techStaffCount: createEnterpriseDto.techStaffCount,
+      isHighTech: createEnterpriseDto.isHighTech,
+      isSpecialized: createEnterpriseDto.isSpecialized,
+      website: createEnterpriseDto.website,
+      officeAddress: createEnterpriseDto.officeAddress,
+      paddleUsageLevel: createEnterpriseDto.paddleUsageLevel,
+      paddleModels: createEnterpriseDto.paddleModels,
+      paddleTrainingType: createEnterpriseDto.paddleTrainingType,
+      ernieModelType: createEnterpriseDto.ernieModelType,
+      ernieAppScenarios: createEnterpriseDto.ernieAppScenarios,
+      promptTemplateCount: createEnterpriseDto.promptTemplateCount,
+      avgMonthlyApiCalls: createEnterpriseDto.avgMonthlyApiCalls,
+      peakApiCalls: createEnterpriseDto.peakApiCalls,
+      inferenceComputeType: createEnterpriseDto.inferenceComputeType,
+      aiImplementationStage: createEnterpriseDto.aiImplementationStage,
+      partnerProgramType: createEnterpriseDto.partnerProgramType,
+      baiduCertificates: createEnterpriseDto.baiduCertificates,
+      eventParticipation: createEnterpriseDto.eventParticipation,
+      jointSolutions: createEnterpriseDto.jointSolutions,
+      isBaiduVenture: createEnterpriseDto.isBaiduVenture,
+      trainingRecord: createEnterpriseDto.trainingRecord,
+      awardsReceived: createEnterpriseDto.awardsReceived,
+      lastContactDept: createEnterpriseDto.lastContactDept
     };
 
     const enterprise = await this.prisma.enterprise.create({
@@ -171,19 +183,39 @@ export class EnterprisesService {
     const updateData: any = {
       enterpriseName: updateEnterpriseDto.企业名称,
       feijiangWenxin: updateEnterpriseDto.飞桨_文心,
-      clueInTime: updateEnterpriseDto.线索入库时间,
-      partnerLevel: updateEnterpriseDto.伙伴等级,
-      ecoAIProducts: updateEnterpriseDto.生态AI产品,
       priority: updateEnterpriseDto.优先级,
-      base: updateEnterpriseDto.base,
       registeredCapital: updateEnterpriseDto.注册资本,
-      employeeCount: updateEnterpriseDto.参保人数,
-      enterpriseBackground: updateEnterpriseDto.企业背景,
-      industry: updateEnterpriseDto.行业,
-      taskDirection: updateEnterpriseDto.任务方向,
-      contactInfo: updateEnterpriseDto.联系人信息,
-      usageScenario: updateEnterpriseDto.使用场景,
+      status: updateEnterpriseDto.status,
       updatedAt: new Date(),
+
+      // 扩展字段
+      unifiedSocialCreditCode: updateEnterpriseDto.unifiedSocialCreditCode,
+      legalRepresentative: updateEnterpriseDto.legalRepresentative,
+      enterpriseType: updateEnterpriseDto.enterpriseType,
+      annualRevenue: updateEnterpriseDto.annualRevenue,
+      techStaffCount: updateEnterpriseDto.techStaffCount,
+      isHighTech: updateEnterpriseDto.isHighTech,
+      isSpecialized: updateEnterpriseDto.isSpecialized,
+      website: updateEnterpriseDto.website,
+      officeAddress: updateEnterpriseDto.officeAddress,
+      paddleUsageLevel: updateEnterpriseDto.paddleUsageLevel,
+      paddleModels: updateEnterpriseDto.paddleModels,
+      paddleTrainingType: updateEnterpriseDto.paddleTrainingType,
+      ernieModelType: updateEnterpriseDto.ernieModelType,
+      ernieAppScenarios: updateEnterpriseDto.ernieAppScenarios,
+      promptTemplateCount: updateEnterpriseDto.promptTemplateCount,
+      avgMonthlyApiCalls: updateEnterpriseDto.avgMonthlyApiCalls,
+      peakApiCalls: updateEnterpriseDto.peakApiCalls,
+      inferenceComputeType: updateEnterpriseDto.inferenceComputeType,
+      aiImplementationStage: updateEnterpriseDto.aiImplementationStage,
+      partnerProgramType: updateEnterpriseDto.partnerProgramType,
+      baiduCertificates: updateEnterpriseDto.baiduCertificates,
+      eventParticipation: updateEnterpriseDto.eventParticipation,
+      jointSolutions: updateEnterpriseDto.jointSolutions,
+      isBaiduVenture: updateEnterpriseDto.isBaiduVenture,
+      trainingRecord: updateEnterpriseDto.trainingRecord,
+      awardsReceived: updateEnterpriseDto.awardsReceived,
+      lastContactDept: updateEnterpriseDto.lastContactDept
     };
 
     const updatedEnterprise = await this.prisma.enterprise.update({
