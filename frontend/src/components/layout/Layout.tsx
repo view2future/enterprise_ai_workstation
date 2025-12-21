@@ -18,10 +18,15 @@ import {
   Database,
   RefreshCw,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Zap,
+  Map
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { enterpriseApi } from '../../services/enterprise.service';
+import { CommandPalette } from '../CommandPalette';
+import { OperationalLiveFeed } from './OperationalLiveFeed';
+import { CinematicOverlay } from '../CinematicOverlay';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -68,6 +73,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navItems = [
     { path: '/dashboard', label: '仪表板', icon: LayoutDashboard },
+    { path: '/dashboard/war-map', label: '战术地图', icon: Map },
     { path: '/enterprises', label: '企业管理', icon: Building2 },
     { path: '/import-export', label: '导入导出', icon: FileOutput },
     { path: '/reports', label: '报告', icon: BarChart3 },
@@ -80,6 +86,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="flex h-screen bg-gray-100 font-sans overflow-hidden">
       <CommandCenter />
       <HUDNotes />
+      <CommandPalette />
+      <CinematicOverlay />
       
       {/* 侧边栏 */}
       <motion.div 
@@ -91,14 +99,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* 折叠开关按钮 */}
         <button
           onClick={() => { soundEngine.playTick(); setIsCollapsed(!isCollapsed); }}
-          className="absolute -right-5 top-24 w-6 h-12 bg-gray-900 border-2 border-gray-700 text-blue-400 flex items-center justify-center hover:text-white transition-colors z-50"
+          className="absolute -right-5 top-24 w-6 h-12 bg-gray-900 border-2 border-gray-700 text-blue-400 flex items-center justify-center hover:text-white transition-colors z-50 shadow-[4px_0px_0px_0px_rgba(0,0,0,1)]"
           title={isCollapsed ? "展开侧边栏" : "收起侧边栏"}
         >
           {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} /> }
         </button>
 
         <div className={`p-6 border-b-4 border-gray-900 flex items-center gap-3 overflow-hidden ${isCollapsed ? 'justify-center px-2' : ''}`}>
-          <div className="bg-blue-600 p-2 border-2 border-white rounded-lg animate-bot shrink-0">
+          <div className="bg-blue-600 p-2 border-2 border-white rounded-lg animate-bot shrink-0 shadow-[0_0_15px_rgba(37,99,235,0.5)]">
             <Bot size={24} />
           </div>
           <AnimatePresence>
@@ -109,7 +117,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 exit={{ opacity: 0, x: -20 }}
                 className="text-xl font-black uppercase tracking-tighter leading-none whitespace-nowrap"
               >
-                Ecosystem<br/><span className="text-blue-400">Station</span>
+                Ecosystem<br/><span className="text-blue-400 font-mono tracking-widest text-sm">STATION V2</span>
               </motion.h1>
             )}
           </AnimatePresence>
@@ -142,11 +150,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </ul>
         </nav>
 
+        <OperationalLiveFeed isCollapsed={isCollapsed} />
+
         <div className={`p-4 border-t-4 border-gray-900 bg-gray-900 overflow-hidden ${isCollapsed ? 'px-2' : ''}`}>
           {!isCollapsed && (
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.8)]"></div>
                 <span className="text-[10px] font-black uppercase text-gray-400">系统活性：极高</span>
               </div>
             </div>
@@ -154,7 +164,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           
           <div className={`flex items-center justify-between ${isCollapsed ? 'flex-col gap-4' : ''}`}>
             <div className={`flex items-center gap-2 ${isCollapsed ? 'flex-col' : ''}`}>
-              <div className="w-8 h-8 rounded-lg bg-gray-700 border-2 border-gray-600 flex items-center justify-center font-black text-xs shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-gray-700 border-2 border-gray-600 flex items-center justify-center font-black text-xs shrink-0 shadow-inner">
                 {user?.username?.[0].toUpperCase()}
               </div>
               {!isCollapsed && (
@@ -166,7 +176,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             <button
               onClick={() => { soundEngine.playTick(); logout(); }}
-              className="p-2 border-2 border-red-800 bg-red-600 hover:bg-red-700 text-white active-gravity transition-all shrink-0"
+              className="p-2 border-2 border-red-800 bg-red-600 hover:bg-red-700 text-white active-gravity transition-all shrink-0 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               title="退出系统"
             >
               <LogOut size={14} />
@@ -175,9 +185,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </motion.div>
       {/* 主内容区 */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        {/* V2 背景装饰流光 */}
+        <div className="absolute top-0 right-0 w-1/2 h-1 bg-gradient-to-r from-transparent via-blue-500/20 to-transparent animate-pulse pointer-events-none"></div>
+
         {/* 顶部导航栏 */}
-        <header className="bg-white border-b-4 border-gray-800 p-4 flex items-center justify-between shadow-sm">
+        <header className="bg-white border-b-4 border-gray-800 p-4 flex items-center justify-between shadow-sm relative z-30">
           <div className="flex items-center gap-3">
             <button className="lg:hidden p-2 border-4 border-gray-800 neubrutal-button">
               <Menu size={20} />
@@ -187,6 +200,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </h2>
           </div>
           <div className="flex items-center gap-2">
+            {/* V2.0 BADGE */}
+            <div className="hidden xl:flex mr-6 px-3 py-1 bg-gray-900 border-2 border-blue-500 rounded-full items-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.3)] animate-pulse cursor-help group relative" title="按 Cmd+K 开启指令中心">
+               <Zap size={12} className="text-blue-400 fill-blue-400" />
+               <span className="text-[10px] font-black text-white italic tracking-tighter uppercase">Command Center Active</span>
+               <div className="absolute top-full mt-2 right-0 hidden group-hover:block bg-gray-900 border-2 border-gray-800 p-2 text-[8px] text-gray-400 whitespace-nowrap z-50">
+                  PRESS <span className="text-white">⌘ + K</span> TO OPEN
+               </div>
+            </div>
+
             {/* 主题切换拨片 (Scheme 12) */}
             <div className="hidden lg:flex bg-gray-200 border-2 border-gray-800 p-1 rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] mr-4">
               {(['baidu', 'deep-ops', 'nuclear'] as const).map((t) => (

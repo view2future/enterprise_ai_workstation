@@ -313,13 +313,18 @@ const EnterprisesPage: React.FC = () => {
               </div>
               <div className="space-y-4 min-h-[500px] p-2 bg-gray-50 border-4 border-dashed border-gray-300 rounded-2xl">
                 {enterprisesData?.items.filter(e => e.aiImplementationStage === stage).map(ent => (
-                  <div key={ent.id} onClick={() => navigate(`/enterprises/${ent.id}`)} className="p-4 bg-white border-4 border-gray-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer group">
-                    <h3 className="font-black text-sm mb-2 group-hover:text-blue-600">{ent.enterpriseName}</h3>
-                    <div className="flex gap-2 mb-3">
+                  <div key={ent.id} onClick={() => navigate(`/enterprises/${ent.id}`)} className="p-4 bg-white border-4 border-gray-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer group relative overflow-hidden">
+                    {/* MINI GENOME BACKGROUND */}
+                    <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                       <Fingerprint size={80} className="text-blue-600" />
+                    </div>
+                    
+                    <h3 className="font-black text-sm mb-2 group-hover:text-blue-600 relative z-10">{ent.enterpriseName}</h3>
+                    <div className="flex gap-2 mb-3 relative z-10">
                       <span className={`text-[8px] font-black px-1 border-2 border-gray-800 ${ent.priority === 'P0' ? 'bg-red-100' : 'bg-gray-50'}`}>{ent.priority}</span>
                       <span className="text-[8px] font-black px-1 border-2 border-gray-800 bg-blue-100">{ent.feijiangWenxin}</span>
                     </div>
-                    <div className="mt-2 text-[10px] font-bold text-gray-400 uppercase tracking-tighter">CALLS: {Number(ent.avgMonthlyApiCalls).toLocaleString()}</div>
+                    <div className="mt-2 text-[10px] font-bold text-gray-400 uppercase tracking-tighter relative z-10">CALLS: {Number(ent.avgMonthlyApiCalls).toLocaleString()}</div>
                   </div>
                 ))}
               </div>

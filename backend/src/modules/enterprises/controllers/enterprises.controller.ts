@@ -14,22 +14,43 @@ import {
 } from '@nestjs/common';
 import { EnterprisesService } from '../services/enterprises.service';
 import { CreateEnterpriseDto, UpdateEnterpriseDto, EnterpriseFilterDto } from '../dto/enterprise.dto';
-import { Enterprise } from '../../../entities/enterprise.entity';
 
 @Controller('enterprises')
-@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+@UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class EnterprisesController {
   constructor(private readonly enterprisesService: EnterprisesService) {}
 
+  // 1. 静态路由 (优先匹配)
+  @Get('stats/summary')
+  @HttpCode(HttpStatus.OK)
+  async getStatistics() {
+    return this.enterprisesService.getStatistics();
+  }
+
+  @Get('all/map-data')
+  @HttpCode(HttpStatus.OK)
+  async getMapData() {
+    // 强制获取全量数据，绕过常规分页限制
+    return this.enterprisesService.findAll({ limit: 1000, page: 0 });
+  }
+
+  // 2. 基础列表路由
   @Get()
   @HttpCode(HttpStatus.OK)
   async findAll(@Query() filters: EnterpriseFilterDto) {
     return this.enterprisesService.findAll(filters);
   }
 
+  // 3. 参数化路由 (最后匹配)
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async findOne(@Param('id') id: number) {
+    return this.enterprisesService.findOne(id);
+  }
+
+  @Get(':id/detail')
+  @HttpCode(HttpStatus.OK)
+  async getEnterpriseDetail(@Param('id') id: number) {
     return this.enterprisesService.findOne(id);
   }
 
@@ -49,17 +70,5 @@ export class EnterprisesController {
   @HttpCode(HttpStatus.OK)
   async remove(@Param('id') id: number) {
     return this.enterprisesService.remove(id);
-  }
-
-  @Get(':id/detail')
-  @HttpCode(HttpStatus.OK)
-  async getEnterpriseDetail(@Param('id') id: number) {
-    return this.enterprisesService.findOne(id);
-  }
-
-  @Get('stats/summary')
-  @HttpCode(HttpStatus.OK)
-  async getStatistics() {
-    return this.enterprisesService.getStatistics();
   }
 }

@@ -5,11 +5,13 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Layout from './components/layout/Layout';
 import DashboardPage from './pages/Dashboard/DashboardPage';
+import WarMapPage from './pages/Dashboard/WarMapPage';
 import TechRadarPage from './pages/Dashboard/TechRadarPage';
 import EcosystemPage from './pages/Dashboard/EcosystemPage';
 import WarRoomPage from './pages/Dashboard/WarRoomPage';
 import EnterprisesPage from './pages/Enterprises/EnterprisesPage';
-import EnterpriseDetailPage from './pages/EnterpriseDetail/EnterpriseDetailPage';
+import EnterpriseDetailPageV2 from './pages/EnterpriseDetail/EnterpriseDetailPageV2';
+import EnterpriseEditPage from './pages/EnterpriseDetail/EnterpriseEditPage';
 import EnterpriseFormPage from './pages/Enterprises/EnterpriseFormPage';
 import ImportExportPage from './pages/ImportExport/ImportExportPage';
 import ReportsPage from './pages/Reports/ReportsPage';
@@ -138,11 +140,11 @@ const MainApp: React.FC = () => {
         } 
       />
       <Route 
-        path="/dashboard/war-room" 
+        path="/dashboard/war-map" 
         element={
           <ProtectedRoute>
             <Layout>
-              <WarRoomPage />
+              <WarMapPage />
             </Layout>
           </ProtectedRoute>
         } 
@@ -172,7 +174,7 @@ const MainApp: React.FC = () => {
         element={
           <ProtectedRoute>
             <Layout>
-              <EnterpriseDetailPage />
+              <EnterpriseDetailPageV2 />
             </Layout>
           </ProtectedRoute>
         } 

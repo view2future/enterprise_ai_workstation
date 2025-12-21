@@ -289,17 +289,86 @@ body {
   transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-/* 扫描线增强 */
-.scanline-effect::before {
-  content: " ";
-  display: block;
+/* V2.0 CORE STYLES - CYBER INDUSTRIAL */
+
+/* 指令面板专用样式 */
+.command-palette [cmdk-list] {
+  min-height: 300px;
+  transition: height 0.2s ease;
+}
+
+.command-palette [cmdk-group-heading] {
+  user-select: none;
+  font-size: 10px;
+  font-weight: 900;
+  color: #4b5563;
+  padding: 8px 16px;
+}
+
+/* 霓虹发光效果 */
+.glow-blue {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+.glow-text-blue {
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
+}
+
+/* 赛博边框 */
+.cyber-border {
+  position: relative;
+  border: 2px solid #1e293b;
+}
+
+.cyber-border::before {
+  content: '';
   position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #3b82f6, transparent, #3b82f6);
+  z-index: -1;
+  opacity: 0.2;
+  transition: opacity 0.3s;
+}
+
+.cyber-border:hover::before {
+  opacity: 0.5;
+}
+
+/* 动态网格背景 */
+.bg-grid-v2 {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px);
+}
+
+/* 强化扫描线 */
+@keyframes scan-v2 {
+  0% { transform: translateY(-100%); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+.scan-v2 {
+  position: fixed;
   top: 0;
   left: 0;
-  bottom: 0;
-  right: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-  z-index: 2;
-  background-size: 100% 2px, 3px 100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(to right, transparent, #3b82f6, transparent);
+  z-index: 100;
   pointer-events: none;
+  animation: scan-v2 8s linear infinite;
+}
+
+/* 隐藏滚动条但保留功能 */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
