@@ -16,8 +16,11 @@ import {
   Bot,
   Clock,
   Database,
-  RefreshCw
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { enterpriseApi } from '../../services/enterprise.service';
 
 interface LayoutProps {
@@ -31,6 +34,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isGlitching, setIsGlitching] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(new Date());
   const [totalEnterprises, setTotalEnterprises] = React.useState<number | null>(null);
+  
+  // 侧边栏折叠状态，从 localStorage 读取初始值
+  const [isCollapsed, setIsCollapsed] = React.useState(() => {
+    const saved = localStorage.getItem('sidebar_collapsed');
+    return saved === 'true';
+  });
+
+  // 持久化折叠状态
+  React.useEffect(() => {
+    localStorage.setItem('sidebar_collapsed', isCollapsed.toString());
+  }, [isCollapsed]);
 
   // 实时时钟
   React.useEffect(() => {
@@ -63,22 +77,45 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans">
+    <div className="flex h-screen bg-gray-100 font-sans overflow-hidden">
       <CommandCenter />
       <HUDNotes />
       
       {/* 侧边栏 */}
-      <div className="w-64 bg-gray-800 text-white flex flex-col border-r-4 border-gray-900 shadow-[4px_0px_0px_0px_rgba(0,0,0,1)]">
-        <div className="p-6 border-b-4 border-gray-900 flex items-center gap-3">
-          <div className="bg-blue-600 p-2 border-2 border-white rounded-lg animate-bot">
+      <motion.div 
+        initial={false}
+        animate={{ width: isCollapsed ? 80 : 256 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="bg-gray-800 text-white flex flex-col border-r-4 border-gray-900 shadow-[4px_0px_0px_0px_rgba(0,0,0,1)] relative z-40"
+      >
+        {/* 折叠开关按钮 */}
+        <button
+          onClick={() => { soundEngine.playTick(); setIsCollapsed(!isCollapsed); }}
+          className="absolute -right-5 top-24 w-6 h-12 bg-gray-900 border-2 border-gray-700 text-blue-400 flex items-center justify-center hover:text-white transition-colors z-50"
+          title={isCollapsed ? "展开侧边栏" : "收起侧边栏"}
+        >
+          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} /> }
+        </button>
+
+        <div className={`p-6 border-b-4 border-gray-900 flex items-center gap-3 overflow-hidden ${isCollapsed ? 'justify-center px-2' : ''}`}>
+          <div className="bg-blue-600 p-2 border-2 border-white rounded-lg animate-bot shrink-0">
             <Bot size={24} />
           </div>
-          <h1 className="text-xl font-black uppercase tracking-tighter leading-none">
-            Ecosystem<br/><span className="text-blue-400">Station</span>
-          </h1>
+          <AnimatePresence>
+            {!isCollapsed && (
+              <motion.h1 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="text-xl font-black uppercase tracking-tighter leading-none whitespace-nowrap"
+              >
+                Ecosystem<br/><span className="text-blue-400">Station</span>
+              </motion.h1>
+            )}
+          </AnimatePresence>
         </div>
         
-        <nav className="flex-1 p-2 overflow-y-auto">
+        <nav className="flex-1 p-2 overflow-y-auto overflow-x-hidden">
           <ul className="space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -87,47 +124,56 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <Link
                     to={item.path}
                     onClick={() => soundEngine.playTick()}
-                    className={`flex items-center gap-3 px-4 py-3 border-2 transition-all active-gravity ${
+                    title={isCollapsed ? item.label : ""}
+                    className={`flex items-center gap-3 px-4 py-3 border-2 transition-all active-gravity group ${
                       isActive(item.path)
                         ? 'bg-blue-600 border-gray-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-x-1 -translate-y-1 text-white'
                         : 'border-transparent text-gray-400 hover:text-white hover:bg-gray-700'
-                    }`}
+                    } ${isCollapsed ? 'justify-center px-0' : ''}`}
                   >
-                    <Icon size={18} />
-                    <span className="font-black uppercase text-xs tracking-widest">{item.label}</span>
+                    <Icon size={18} className="shrink-0" />
+                    {!isCollapsed && (
+                      <span className="font-black uppercase text-xs tracking-widest whitespace-nowrap">{item.label}</span>
+                    )}
                   </Link>
                 </li>
               );
             })}
           </ul>
         </nav>
-        <div className="p-4 border-t-4 border-gray-900 bg-gray-900">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-[10px] font-black uppercase text-gray-400">系统活性：极高</span>
+
+        <div className={`p-4 border-t-4 border-gray-900 bg-gray-900 overflow-hidden ${isCollapsed ? 'px-2' : ''}`}>
+          {!isCollapsed && (
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-[10px] font-black uppercase text-gray-400">系统活性：极高</span>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gray-700 border-2 border-gray-600 flex items-center justify-center font-black text-xs">
+          )}
+          
+          <div className={`flex items-center justify-between ${isCollapsed ? 'flex-col gap-4' : ''}`}>
+            <div className={`flex items-center gap-2 ${isCollapsed ? 'flex-col' : ''}`}>
+              <div className="w-8 h-8 rounded-lg bg-gray-700 border-2 border-gray-600 flex items-center justify-center font-black text-xs shrink-0">
                 {user?.username?.[0].toUpperCase()}
               </div>
-              <div>
-                <p className="text-[10px] font-black uppercase text-white truncate w-24">{user?.username}</p>
-                <p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">{user?.role}</p>
-              </div>
+              {!isCollapsed && (
+                <div>
+                  <p className="text-[10px] font-black uppercase text-white truncate w-24">{user?.username}</p>
+                  <p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">{user?.role}</p>
+                </div>
+              )}
             </div>
             <button
               onClick={() => { soundEngine.playTick(); logout(); }}
-              className="p-2 border-2 border-red-800 bg-red-600 hover:bg-red-700 text-white active-gravity transition-all"
+              className="p-2 border-2 border-red-800 bg-red-600 hover:bg-red-700 text-white active-gravity transition-all shrink-0"
               title="退出系统"
             >
               <LogOut size={14} />
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
       {/* 主内容区 */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* 顶部导航栏 */}
