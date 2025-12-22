@@ -1,3 +1,4 @@
+
 {
   "settings": {
     "baseUrl": "http://localhost:3000",
@@ -7,70 +8,70 @@
     {
       "action": "goto",
       "url": "/dashboard",
-      "subtitle": "正在接入战略指挥中心。系统实时感知成都全域 1,245 个产业节点，生态大盘已实现秒级同步。"
+      "subtitle": "欢迎使用‘联图/Nexus’。正在接入西南AI产业生态智研决策平台..."
     },
     {
       "action": "hover",
       "selector": ".recharts-wrapper",
-      "subtitle": "宏观态势感知：通过对 avgMonthlyApiCalls 等 26 个维度的聚合分析，系统精准捕捉每一个活跃动能。"
+      "subtitle": "宏观态势感知：平台实时感知西南全域产业节点，生态大盘已实现秒级同步。"
     },
     {
       "action": "goto",
       "url": "/enterprises",
-      "subtitle": "进入全量档案库。这里存储了所有合作伙伴的深度画像，包含注册资本、技术栈及落地阶段等核心字段。"
+      "subtitle": "进入联图全量档案库。这里存储了所有合作伙伴的深度画像，包含 26 个核心维度。"
     },
     {
       "action": "fill",
       "selector": "input[placeholder*='搜索']",
       "value": "智算",
-      "subtitle": "演示检索性能：秒级锁定“智算”相关的高价值目标，展现系统对海量数据的检索效率。"
+      "subtitle": "联图内置搜索引擎支持秒级语义检索，展现系统对海量数据的穿透式管理能力。"
     },
     {
       "action": "goto",
       "url": "/reports",
-      "subtitle": "切换至‘情报归档中心’。注意左侧控制台：Smart Naming 协议已启动，情报代号根据周期实时自动化生成。"
+      "subtitle": "切换至‘联图情报档案馆’。Smart Naming 协议已启动，情报代号根据周期自动生成。"
     },
     {
       "action": "click",
       "selector": "select",
-      "subtitle": "自动化命名演示：当我们将周期切换至‘季级 (QUARTERLY)’，代号将实时重构为 QT·CD 格式，便于归档管理。"
+      "subtitle": "自动化命名演示：当任务周期切换时，代号将实时重构，确保档案管理的高度规范。"
     },
     {
       "action": "click",
       "selector": ".group:first-child",
-      "subtitle": "调取存档情报。系统正在从档案馆中提取高机密级别 (L7) 的数字化档案..."
+      "subtitle": "调取存档情报。Nexus 正在从档案馆中提取高机密级别 (L7) 的数字化研报..."
     },
     {
       "action": "click",
       "selector": "button:has-text('进入数字化阅览室')",
-      "subtitle": "接入沉浸式数字化阅览室。请注意即将启动的“情报解密”加载过程...",
+      "subtitle": "接入沉浸式数字化阅览室。请注意即将启动的“联图情报解密”程序...",
       "waitAfter": 5500
     },
     {
       "action": "scroll",
       "direction": "down",
-      "subtitle": "这是基于数据库字段提炼的“史诗级”研报。不仅有精美的图表，更具备深度行业洞察与战略建议。"
+      "subtitle": "这是基于联图底层数据提炼的“产业白皮书”，具备深度行业洞察与决策建议。"
     },
     {
       "action": "click",
       "selector": "h4.text-7xl, h4.text-5xl, .cursor-pointer h4",
-      "subtitle": "核心亮点：数据下钻。点击报告中的任何 KPI 数字，系统将实时穿透至底层的企业原始实体记录。",
+      "subtitle": "联图核心亮点：数据下钻。点击报告中的任何 KPI 指标，即可实时穿透至原始实体记录。",
       "waitAfter": 4000
     },
     {
       "action": "click",
       "selector": "button:has(svg.lucide-x)",
-      "subtitle": "查阅完毕，关闭情报抽屉。这种“所见即所得”的数据验证机制，确保了汇报内容的绝对权威性。"
+      "subtitle": "查阅完毕。这种“所见即所得”的数据验证机制，确保了决策平台的绝对真实性。"
     },
     {
       "action": "scroll",
       "direction": "down",
-      "subtitle": "继续向下浏览：系统自动分析了企业注册资本、用工规模及技术渗透矩阵，构建了完整的生态全景图。"
+      "subtitle": "继续向下浏览：包含区域能级分布、行业渗透矩阵及西南 AI 产业五年宏图预测。"
     },
     {
       "action": "wait",
       "duration": 3000,
-      "subtitle": "演示结束。Enterprise AI Workstation：构建数据驱动的产业生态指挥大脑。"
+      "subtitle": "演示结束。联图/Nexus：让数据资产转化为西南 AI 生态的战略驱动力。"
     }
   ]
 }

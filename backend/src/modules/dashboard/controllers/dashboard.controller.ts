@@ -1,9 +1,17 @@
-import { Controller, Get, HttpCode, HttpStatus, Query } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Query, UseGuards } from '@nestjs/common';
 import { DashboardService } from '../services/dashboard.service';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @Controller('dashboard')
+@UseGuards(JwtAuthGuard)
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
+
+  @Get('map-data')
+  @HttpCode(HttpStatus.OK)
+  async getMapData() {
+    return this.dashboardService.getMapData();
+  }
 
   @Get('stats')
   @HttpCode(HttpStatus.OK)
@@ -17,25 +25,17 @@ export class DashboardController {
     return this.dashboardService.getChartData(timeRange);
   }
 
-  @Get('recent-activities')
-  @HttpCode(HttpStatus.OK)
-  async getRecentActivities(@Query('timeRange') timeRange: string) {
-    return this.dashboardService.getRecentActivities(timeRange);
-  }
-
   @Get('overview')
   @HttpCode(HttpStatus.OK)
   async getOverview(@Query('timeRange') timeRange: string) {
-    const [stats, chartData, recentActivities] = await Promise.all([
+    const [stats, chartData] = await Promise.all([
       this.dashboardService.getStats(timeRange),
       this.dashboardService.getChartData(timeRange),
-      this.dashboardService.getRecentActivities(timeRange),
     ]);
 
     return {
       stats,
       chartData,
-      recentActivities,
       timestamp: new Date().toISOString(),
     };
   }

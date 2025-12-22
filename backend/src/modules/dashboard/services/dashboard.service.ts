@@ -188,4 +188,11 @@ export class DashboardService {
 
     return { partnerTypes, ventureStats, topLevelMetrics: counts };
   }
+
+  async getMapData() {
+    return this.prisma.enterprise.findMany({
+      where: { status: 'active' },
+      take: 1000
+    });
+  }
 }

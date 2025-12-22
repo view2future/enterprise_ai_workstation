@@ -251,7 +251,7 @@ const WeeklyTemplate: React.FC<WeeklyTemplateProps> = ({ report, onDrillDown }) 
             <div className="p-4 bg-white border-8 border-gray-900 rotate-2 shadow-[10px_10px_0px_0px_rgba(0,0,0,0.3)]">
                <div className="w-32 h-32 border-4 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-200 font-black text-[10px] text-center gap-2">
                   <ShieldCheck size={40} />
-                  CONFIDENTIAL<br/>STAMPED
+                  联图/NEXUS<br/>STRATEGIC
                </div>
             </div>
           </div>
@@ -259,19 +259,18 @@ const WeeklyTemplate: React.FC<WeeklyTemplateProps> = ({ report, onDrillDown }) 
       </section>
 
       {/* FOOTER METADATA */}
-      <footer className="pt-20 border-t-8 border-gray-100 flex flex-wrap gap-12 opacity-50 pb-10">
-        <div className="flex items-center gap-3">
-           <Info size={18} className="text-gray-900" />
-           <span className="text-[10px] font-black uppercase tracking-[0.3em]">System Confidence: 99.8% // Data Integrity: SHA-256 Verified</span>
+      <footer className="pt-20 border-t-8 border-gray-100 flex flex-col gap-8 opacity-50 pb-10">
+        <div className="flex flex-wrap gap-12">
+          <div className="flex items-center gap-3">
+             <Info size={18} className="text-gray-900" />
+             <span className="text-[10px] font-black uppercase tracking-[0.3em]">System Confidence: 99.8% // Southwest AI Data Matrix</span>
+          </div>
+          <div className="flex items-center gap-3">
+             <Filter size={18} className="text-gray-900" />
+             <span className="text-[10px] font-black uppercase tracking-[0.3em]">Source: 西南AI产业生态智研决策平台</span>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-           <Filter size={18} className="text-gray-900" />
-           <span className="text-[10px] font-black uppercase tracking-[0.3em]">Filters: active=true, priority=[P0,P1]</span>
-        </div>
-        <div className="flex items-center gap-3 text-gray-900">
-           <UserPlus size={18} />
-           <span className="text-[10px] font-black uppercase tracking-[0.3em]">Source: Real-time Enterprise Database Matrix</span>
-        </div>
+        <p className="text-[10px] font-bold text-gray-400 italic">© 2025 联图/NEXUS 数字化情报引擎 - 核心研报机密档案</p>
       </footer>
     </div>
   );

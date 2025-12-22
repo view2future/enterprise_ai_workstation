@@ -58,7 +58,7 @@
 
   const hud = document.createElement('div');
   hud.id = 'demo-subtitle-hud';
-  hud.innerText = 'Neural Matrix Initialized...';
+  hud.innerText = '联图/Nexus 系统初始化中...';
   document.documentElement.appendChild(hud);
 
   const fab = document.createElement('div');

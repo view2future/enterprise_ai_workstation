@@ -115,9 +115,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="text-xl font-black uppercase tracking-tighter leading-none whitespace-nowrap"
+                className="text-xl font-black uppercase tracking-tighter leading-tight whitespace-nowrap"
               >
-                Ecosystem<br/><span className="text-blue-400 font-mono tracking-widest text-sm">STATION V2</span>
+                联图<br/><span className="text-blue-400 font-mono tracking-widest text-sm">NEXUS v3.0</span>
               </motion.h1>
             )}
           </AnimatePresence>
@@ -195,9 +195,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <button className="lg:hidden p-2 border-4 border-gray-800 neubrutal-button">
               <Menu size={20} />
             </button>
-            <h2 className="text-lg font-black uppercase tracking-widest text-gray-800">
-              {location.pathname.split('/').pop() || 'DASHBOARD'}
-            </h2>
+            <div className="flex flex-col">
+              <h2 className="text-lg font-black uppercase tracking-widest text-gray-800 leading-tight">
+                {location.pathname.split('/').pop() || 'DASHBOARD'}
+              </h2>
+              <p className="text-[8px] font-bold text-gray-400 uppercase tracking-[0.2em]">西南AI产业生态智研决策平台</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {/* V2.0 BADGE */}

@@ -66,6 +66,10 @@ export const dashboardApi = {
 
   // 获取生态合作健康分析数据
   getEcosystem: () => {
-    return apiClient.get<any>('/dashboard/ecosystem');
+    return apiClient.get('/dashboard/ecosystem');
+  },
+
+  getMapData: () => {
+    return apiClient.get('/dashboard/map-data');
   }
 };

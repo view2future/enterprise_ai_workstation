@@ -28,7 +28,7 @@ export class EnterprisesController {
     return this.enterprisesService.getStatistics();
   }
 
-  @Get('map-data')
+  @Get('action/map-data-full')
   @HttpCode(HttpStatus.OK)
   async getMapData() {
     // 强制获取全量数据，绕过常规分页限制

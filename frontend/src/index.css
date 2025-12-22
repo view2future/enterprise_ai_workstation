@@ -364,11 +364,90 @@ body {
   animation: scan-v2 8s linear infinite;
 }
 
-/* 隐藏滚动条但保留功能 */
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+/* V2.0 ADVANCED CYBERNETIC EFFECTS */
+
+
+
+/* 声纳脉冲波纹 */
+
+@keyframes sonar-pulse {
+
+  0% { transform: scale(0.1); opacity: 0.8; }
+
+  100% { transform: scale(2.5); opacity: 0; }
+
 }
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+
+
+
+.sonar-ripple {
+
+  position: absolute;
+
+  border: 2px solid #3b82f6;
+
+  border-radius: 50%;
+
+  pointer-events: none;
+
+  animation: sonar-pulse 4s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+
+}
+
+
+
+/* 霓虹文字发光 */
+
+.text-neon-blue {
+
+  color: #60a5fa;
+
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.4);
+
+}
+
+
+
+.text-neon-red {
+
+  color: #f87171;
+
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.8), 0 0 20px rgba(239, 68, 68, 0.4);
+
+}
+
+
+
+/* 电子扫描背景 */
+
+.bg-cyber-grid {
+
+  background-image: 
+
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+
+    linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+
+  background-size: 100% 4px, 3px 100%;
+
+}
+
+
+
+/* 乱码跳动字符效果 */
+
+.matrix-loader::after {
+
+  content: " ";
+
+  animation: matrix-text 0.1s steps(1) infinite;
+
+}
+
+
+
+@keyframes matrix-text {
+
+  0% { content: "01"; } 20% { content: "X$"; } 40% { content: "7A"; } 60% { content: "K9"; } 80% { content: "!"; } 100% { content: " "; }
+
 }

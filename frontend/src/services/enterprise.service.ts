@@ -116,8 +116,8 @@ export const enterpriseApi = {
     return apiClient.get('/enterprises/stats/summary');
   },
 
-  // 获取全量地图数据 (V2.0)
+  // 获取全量地图数据 (V2.0 - Final Stability)
   getMapData: () => {
-    return apiClient.get<PaginatedResponse<Enterprise>>('/enterprises/map-data');
+    return apiClient.get<PaginatedResponse<Enterprise>>('/enterprises/action/map-data-full');
   }
 };
