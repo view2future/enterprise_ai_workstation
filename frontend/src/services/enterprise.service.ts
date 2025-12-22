@@ -118,6 +118,6 @@ export const enterpriseApi = {
 
   // 获取全量地图数据 (V2.0)
   getMapData: () => {
-    return apiClient.get<PaginatedResponse<Enterprise>>('/enterprises/all/map-data');
+    return apiClient.get<PaginatedResponse<Enterprise>>('/enterprises/map-data');
   }
 };

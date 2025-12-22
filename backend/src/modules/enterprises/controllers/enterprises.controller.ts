@@ -18,6 +18,7 @@ import { CreateEnterpriseDto, UpdateEnterpriseDto, EnterpriseFilterDto } from '.
 @Controller('enterprises')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class EnterprisesController {
+  // VERSION: 2.0.5 - FORCE_REBUILD
   constructor(private readonly enterprisesService: EnterprisesService) {}
 
   // 1. 静态路由 (优先匹配)
@@ -27,7 +28,7 @@ export class EnterprisesController {
     return this.enterprisesService.getStatistics();
   }
 
-  @Get('all/map-data')
+  @Get('map-data')
   @HttpCode(HttpStatus.OK)
   async getMapData() {
     // 强制获取全量数据，绕过常规分页限制
