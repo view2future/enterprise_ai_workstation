@@ -1,9 +1,8 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { LoginDto, RegisterDto } from '../dto/auth.dto';
+import { LoginDto } from '../dto/auth.dto';
 import * as bcrypt from 'bcryptjs';
-import { JwtPayload } from '../interfaces/jwt-payload.interface';
 
 @Injectable()
 export class AuthService {
@@ -12,10 +11,18 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(email: string, pass: string): Promise<any> {
-    // Find user by email
-    const user = await this.prisma.user.findUnique({
-      where: { email, status: 'active' },
+  /**
+   * 验证用户并返回环境权限
+   */
+  async validateUser(emailOrUsername: string, pass: string): Promise<any> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: emailOrUsername },
+          { username: emailOrUsername }
+        ],
+        status: 'active'
+      },
     });
 
     if (user && await bcrypt.compare(pass, user.password)) {
@@ -25,100 +32,53 @@ export class AuthService {
     return null;
   }
 
-  generateToken(payload: JwtPayload) {
-    return this.jwtService.sign(payload);
-  }
-
+  /**
+   * 普通登录 (生产环境)
+   */
   async login(loginDto: LoginDto) {
-    const { email, password } = loginDto;
-    
-    // Check if it's the demo account
-    if (email === 'demo@example.com' && password === 'password123') {
-      const demoUser = {
-        id: 999,
-        email: 'demo@example.com',
-        username: 'demo_user',
-        role: 'analyst',
-        status: 'active',
-        firstName: 'Demo',
-        lastName: 'User',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      
-      const payload = { 
-        email: demoUser.email, 
-        sub: demoUser.id, 
-        role: demoUser.role 
-      };
-      
-      return {
-        access_token: this.generateToken(payload),
-        user: demoUser,
-      };
-    }
-    
-    // Perform normal login validation
-    const user = await this.validateUser(email, password);
+    const user = await this.validateUser(loginDto.username, loginDto.password);
     
     if (!user) {
-      throw new UnauthorizedException('邮箱或密码错误');
+      throw new UnauthorizedException('凭据无效，请检查账号密码');
     }
 
+    // 生产模式下的用户只能看到 PROD 数据 (除非在 DB 里被手动设为了其他)
     const payload = { 
-      email: user.email, 
       sub: user.id, 
-      role: user.role 
+      username: user.username,
+      role: user.role,
+      env: user.envScope // 核心：注入环境标识
     };
     
     return {
-      access_token: this.generateToken(payload),
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        status: user.status,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
+      access_token: this.jwtService.sign(payload),
+      user,
     };
   }
 
-  async register(registerDto: RegisterDto) {
-    // Check if user already exists
-    const existingUser = await this.prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: registerDto.email },
-          { username: registerDto.username }
-        ]
-      }
+  /**
+   * 演示模式快捷登录
+   */
+  async loginDemo() {
+    const demoUser = await this.prisma.user.findFirst({
+      where: { envScope: 'DEMO', status: 'active' }
     });
 
-    if (existingUser) {
-      throw new BadRequestException('邮箱或用户名已存在');
+    if (!demoUser) {
+      throw new UnauthorizedException('演示环境暂未就绪');
     }
 
-    // Hash password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(registerDto.password, saltRounds);
+    const payload = {
+      sub: demoUser.id,
+      username: demoUser.username,
+      role: demoUser.role,
+      env: 'DEMO' // 强制指定环境
+    };
 
-    // Create new user
-    const user = await this.prisma.user.create({
-      data: {
-        ...registerDto,
-        password: hashedPassword,
-        role: 'analyst', // Default to analyst role
-        status: 'active',
-      }
-    });
-
-    // Return user info without password
-    const { password, ...result } = user;
-    return result;
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: demoUser,
+    };
   }
 
   async getProfile(userId: number) {
@@ -126,41 +86,10 @@ export class AuthService {
       where: { id: userId, status: 'active' },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('用户不存在或已被禁用');
-    }
-
+    if (!user) throw new UnauthorizedException('用户无效');
+    
+    // 显式排除密码并返回
     const { password, ...result } = user;
     return result;
-  }
-
-  async changePassword(userId: number, currentPassword: string, newPassword: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId, status: 'active' },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('用户不存在或已被禁用');
-    }
-
-    // Validate current password
-    if (!await bcrypt.compare(currentPassword, user.password)) {
-      throw new BadRequestException('当前密码错误');
-    }
-
-    // Hash new password
-    const saltRounds = 10;
-    const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
-
-    // Update password
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { 
-        password: hashedNewPassword,
-        updatedAt: new Date(),
-      }
-    });
-
-    return { message: '密码修改成功' };
   }
 }

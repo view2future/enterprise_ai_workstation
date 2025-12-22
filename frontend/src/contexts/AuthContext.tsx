@@ -7,8 +7,8 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
+  loginDemo: () => Promise<void>;
   logout: () => void;
-  register: (userData: { username: string; email: string; password: string }) => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -22,11 +22,7 @@ export const useAuth = () => {
   return context;
 };
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const navigate = useNavigate();
@@ -34,55 +30,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
-      // 设置axios默认请求头
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-      
-      // 获取用户信息
-      const fetchUser = async () => {
-        try {
-          const response = await authApi.getProfile();
-          setUser(response.data);
-        } catch (error) {
-          console.error('获取用户信息失败:', error);
-          // Token无效，清除本地存储
-          localStorage.removeItem('token');
-          delete axios.defaults.headers.common['Authorization'];
-          setToken(null);
-          setUser(null);
-        }
-      };
-      
-      fetchUser();
+      authApi.getProfile()
+        .then(res => setUser(res.data))
+        .catch(() => logout());
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const handleLoginSuccess = (access_token: string, userData: User) => {
+    if (!access_token || !userData) {
+      throw new Error('鉴权令牌或用户信息缺失');
+    }
+    localStorage.setItem('token', access_token);
+    setToken(access_token);
+    setUser(userData);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+    navigate('/dashboard');
+  };
+
+  const login = async (username: string, password: string) => {
     try {
-      const response = await authApi.login({ email, password });
-      const { access_token, user: userData } = response.data;
-      
-      localStorage.setItem('token', access_token);
-      setToken(access_token);
-      setUser(userData);
-      
-      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      
-      // 登录成功后导航到仪表板
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('登录失败:', error);
-      throw error;
+      const response = await authApi.login({ username, password });
+      handleLoginSuccess(response.data.access_token, response.data.user);
+    } catch (err) {
+      console.error('PROD_LOGIN_FAULT:', err);
+      throw err;
     }
   };
 
-  const register = async (userData: { username: string; email: string; password: string }) => {
+  const loginDemo = async () => {
     try {
-      const response = await authApi.register(userData);
-      // 注册成功后通常需要登录
-      await login(userData.email, userData.password);
-    } catch (error) {
-      console.error('注册失败:', error);
-      throw error;
+      const response = await authApi.loginDemo();
+      handleLoginSuccess(response.data.access_token, response.data.user);
+    } catch (err) {
+      console.error('DEMO_LOGIN_FAULT:', err);
+      throw err;
     }
   };
 
@@ -94,17 +76,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     navigate('/login');
   };
 
-  const value = {
-    user,
-    token,
-    login,
-    logout,
-    register,
-    isAuthenticated: !!token,
-  };
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, token, login, loginDemo, logout, isAuthenticated: !!token }}>
       {children}
     </AuthContext.Provider>
   );

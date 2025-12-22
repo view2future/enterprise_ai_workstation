@@ -10,25 +10,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') || 'default_secret',
+      secretOrKey: configService.get<string>('JWT_SECRET') || 'ENTERPRISE_SECRET_2025',
     });
   }
 
   async validate(payload: JwtPayload) {
-    // 检查是否是演示用户的JWT
-    if (payload.email === 'demo@example.com') {
-      return {
-        id: payload.sub,
-        email: payload.email,
-        role: payload.role,
-      };
-    }
-
-    // 对于非演示用户，从数据库验证
+    // 将 JWT 中的载荷直接映射到请求对象的 user 属性中
     return {
-      id: payload.sub,
-      email: payload.email,
+      sub: payload.sub,
+      username: payload.username,
       role: payload.role,
+      env: payload.env // 关键：向下游传递环境标识
     };
   }
 }

@@ -86,7 +86,7 @@ body {
   --shadow: rgba(0, 0, 0, 1);
 }
 
-[data-theme='deep-ops'] {
+[data-theme='stealth'] {
   --primary: #10b981;
   --bg-main: #020617;
   --card-bg: #0f172a;
@@ -96,7 +96,7 @@ body {
   --input-bg: #1e293b;
 }
 
-[data-theme='nuclear'] {
+[data-theme='hazard'] {
   --primary: #f97316;
   --bg-main: #1c1917;
   --card-bg: #292524;
@@ -114,60 +114,60 @@ body {
 }
 
 /* 强制重置深色模式下的背景色 - 覆盖 Tailwind bg-white 类 */
-[data-theme='deep-ops'] .bg-white,
-[data-theme='deep-ops'] .bg-gray-50,
-[data-theme='deep-ops'] .bg-gray-100 {
+[data-theme='stealth'] .bg-white,
+[data-theme='stealth'] .bg-gray-50,
+[data-theme='stealth'] .bg-gray-100 {
   background-color: var(--card-bg) !important;
   color: var(--text-main) !important;
 }
 
-[data-theme='nuclear'] .bg-white,
-[data-theme='nuclear'] .bg-gray-50,
-[data-theme='nuclear'] .bg-gray-100 {
+[data-theme='hazard'] .bg-white,
+[data-theme='hazard'] .bg-gray-50,
+[data-theme='hazard'] .bg-gray-100 {
   background-color: var(--card-bg) !important;
   color: var(--text-main) !important;
 }
 
 /* 统一输入框与下拉框背景 */
-[data-theme='deep-ops'] input, 
-[data-theme='deep-ops'] select, 
-[data-theme='deep-ops'] textarea {
+[data-theme='stealth'] input, 
+[data-theme='stealth'] select, 
+[data-theme='stealth'] textarea {
   background-color: var(--input-bg) !important;
   color: var(--text-main) !important;
   border-color: var(--primary) !important;
 }
 
-[data-theme='nuclear'] input, 
-[data-theme='nuclear'] select, 
-[data-theme='nuclear'] textarea {
+[data-theme='hazard'] input, 
+[data-theme='hazard'] select, 
+[data-theme='hazard'] textarea {
   background-color: var(--input-bg) !important;
   color: var(--text-main) !important;
   border-color: var(--primary) !important;
 }
 
 /* Neubrutalism 风格覆盖 */
-[data-theme='deep-ops'] .neubrutal-card,
-[data-theme='deep-ops'] .neubrutal-card-white {
+[data-theme='stealth'] .neubrutal-card,
+[data-theme='stealth'] .neubrutal-card-white {
   background-color: var(--card-bg) !important;
   border-color: #334155 !important;
   color: var(--text-main) !important;
 }
 
-[data-theme='nuclear'] .neubrutal-card,
-[data-theme='nuclear'] .neubrutal-card-white {
+[data-theme='hazard'] .neubrutal-card,
+[data-theme='hazard'] .neubrutal-card-white {
   background-color: var(--card-bg) !important;
   border-color: #57534e !important;
   color: var(--text-main) !important;
 }
 
 /* 覆盖 Dashboard KPI 文本颜色 */
-[data-theme='deep-ops'] .text-gray-900,
-[data-theme='deep-ops'] .text-gray-800 {
+[data-theme='stealth'] .text-gray-900,
+[data-theme='stealth'] .text-gray-800 {
   color: #f8fafc !important;
 }
 
-[data-theme='nuclear'] .text-gray-900,
-[data-theme='nuclear'] .text-gray-800 {
+[data-theme='hazard'] .text-gray-900,
+[data-theme='hazard'] .text-gray-800 {
   color: #fbbf24 !important;
 }
 
@@ -191,34 +191,34 @@ body {
 }
 
 /* 强制深色主题下的 Tailwind 灰色类覆盖 */
-[data-theme='deep-ops'] .text-gray-600,
-[data-theme='deep-ops'] .text-gray-500,
-[data-theme='deep-ops'] .text-gray-400 {
+[data-theme='stealth'] .text-gray-600,
+[data-theme='stealth'] .text-gray-500,
+[data-theme='stealth'] .text-gray-400 {
   color: #94a3b8 !important; /* 蓝灰色 */
 }
 
-[data-theme='deep-ops'] .text-gray-800,
-[data-theme='deep-ops'] .text-gray-900 {
+[data-theme='stealth'] .text-gray-800,
+[data-theme='stealth'] .text-gray-900 {
   color: #f8fafc !important;
 }
 
-[data-theme='nuclear'] .text-gray-600,
-[data-theme='nuclear'] .text-gray-500,
-[data-theme='nuclear'] .text-gray-400 {
+[data-theme='hazard'] .text-gray-600,
+[data-theme='hazard'] .text-gray-500,
+[data-theme='hazard'] .text-gray-400 {
   color: #a8a29e !important; /* 暖灰色 */
 }
 
-[data-theme='nuclear'] .text-gray-800,
-[data-theme='nuclear'] .text-gray-900 {
+[data-theme='hazard'] .text-gray-800,
+[data-theme='hazard'] .text-gray-900 {
   color: #fbbf24 !important; /* 琥珀黄 */
 }
 
 /* 统一卡片文字 */
-[data-theme='deep-ops'] p, [data-theme='deep-ops'] span, [data-theme='deep-ops'] h1, [data-theme='deep-ops'] h2, [data-theme='deep-ops'] h3 {
+[data-theme='stealth'] p, [data-theme='stealth'] span, [data-theme='stealth'] h1, [data-theme='stealth'] h2, [data-theme='stealth'] h3 {
   color: var(--text-main);
 }
 
-[data-theme='nuclear'] p, [data-theme='nuclear'] span, [data-theme='nuclear'] h1, [data-theme='nuclear'] h2, [data-theme='nuclear'] h3 {
+[data-theme='hazard'] p, [data-theme='hazard'] span, [data-theme='hazard'] h1, [data-theme='hazard'] h2, [data-theme='hazard'] h3 {
   color: var(--text-main);
 }
 

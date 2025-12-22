@@ -1,7 +1,7 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type Theme = 'baidu' | 'deep-ops' | 'nuclear';
+// 更新主题命名：CYBER (蓝色), STEALTH (深色), HAZARD (高能)
+export type Theme = 'cyber' | 'stealth' | 'hazard';
 
 interface ThemeContextType {
   theme: Theme;
@@ -12,7 +12,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
-    return (localStorage.getItem('sys-theme') as Theme) || 'baidu';
+    // 兼容旧值，如果没有或不匹配则默认 cyber
+    const saved = localStorage.getItem('sys-theme');
+    if (saved === 'cyber' || saved === 'stealth' || saved === 'hazard') return saved as Theme;
+    return 'cyber';
   });
 
   const setTheme = (t: Theme) => {
