@@ -1,11 +1,12 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtPayload } from '../interfaces/jwt-payload.interface';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
+  private readonly logger = new Logger(JwtStrategy.name);
+
   constructor(private configService: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -14,13 +15,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload) {
-    // 将 JWT 中的载荷直接映射到请求对象的 user 属性中
-    return {
+  async validate(payload: any) {
+    // 兼容性提取：支持新旧两种 Key
+    const env = payload.envScope || payload.env || 'PROD';
+    
+    const context = {
       sub: payload.sub,
       username: payload.username,
       role: payload.role,
-      env: payload.env // 关键：向下游传递环境标识
+      envScope: env // 统一向下游传递 envScope
     };
+
+    return context;
   }
 }

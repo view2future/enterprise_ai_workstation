@@ -114,9 +114,11 @@ const WarMapPage: React.FC = () => {
   }, [enterprises]);
 
   const visibleMarkersData = useMemo(() => {
-    if (timeValue >= 2025) return markersData;
-    const ratio = (timeValue - 2020) / (2025 - 2020);
-    return markersData.slice(0, Math.floor(markersData.length * Math.max(0.05, ratio)));
+    // 核心逻辑：显示所有创建年份小于或等于当前滑块年份的企业
+    return markersData.filter(m => {
+      const createdYear = new Date(m.createdAt).getFullYear();
+      return createdYear <= timeValue;
+    });
   }, [markersData, timeValue]);
 
   // 2. 渲染点位与触发涟漪特效
@@ -333,9 +335,9 @@ const WarMapPage: React.FC = () => {
 
             <div className="flex items-center gap-6 min-w-[180px] justify-end border-l border-gray-800 pl-6">
               <div className="text-right">
-                <span className="block text-[7px] font-black text-gray-500 uppercase tracking-tighter">Nodes Count</span>
+                <span className="block text-[7px] font-black text-gray-500 uppercase tracking-tighter">Live Nodes Count</span>
                 <motion.span key={`cnt-${timeValue}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xl font-mono font-black text-white italic">
-                  {yearlyCounts.find(y => y.year === timeValue)?.count || 0}
+                  {visibleMarkersData.length}
                 </motion.span>
               </div>
               <div className="text-right">

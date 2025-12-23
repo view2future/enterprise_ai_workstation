@@ -26,7 +26,10 @@ export const authApi = {
 
   // 演示环境快捷登录 (V2.0)
   loginDemo: () => {
-    return apiClient.post<{ access_token: string; user: User }>('/auth/demo');
+    // 显式不带 Authorization 头，防止旧 Token 干扰
+    return apiClient.post<{ access_token: string; user: User }>('/auth/demo', {}, {
+      headers: { Authorization: '' }
+    });
   },
 
   // 获取当前用户信息

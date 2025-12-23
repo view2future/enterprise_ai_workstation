@@ -1,12 +1,9 @@
 import axios from 'axios';
 
-// 创建axios实例
 const apiClient = axios.create({
   baseURL: 'http://localhost:3001/api',
   timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
 // 请求拦截器
@@ -15,22 +12,23 @@ apiClient.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        // 调试：打印真实提取的环境值
+        const resolvedEnv = payload.envScope || payload.env || 'PROD';
+        console.log(`[NETWORK_SCAN] Request: ${config.url} | Env: ${resolvedEnv}`);
+      } catch (e) {}
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// 响应拦截器
 apiClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token过期，清除本地存储并重定向到登录页
       localStorage.removeItem('token');
       window.location.href = '/login';
     }

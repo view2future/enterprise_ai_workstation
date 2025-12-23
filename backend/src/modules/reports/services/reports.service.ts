@@ -1,118 +1,104 @@
-
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import * as xl from 'excel4node';
 import * as path from 'path';
 import * as fs from 'fs';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execPromise = promisify(exec);
 
 @Injectable()
 export class ReportsService {
+  private readonly logger = new Logger(ReportsService.name);
+
   constructor(private prisma: PrismaService) {}
 
-  async findAll() {
+  async findAll(userEnv: string) {
     return this.prisma.report.findMany({
+      where: { envScope: userEnv },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findOne(id: number) {
-    const report = await this.prisma.report.findUnique({
-      where: { id },
+  async findOne(id: number, userEnv: string) {
+    const report = await this.prisma.report.findFirst({
+      where: { id, envScope: userEnv },
     });
-    if (!report) throw new NotFoundException('报告未找到');
+    if (!report) throw new NotFoundException('报告不存在');
     return report;
   }
 
-  async generateReport(dto: any) {
-    const { title, type, description, filters, modules = ['summary', 'details'] } = dto;
-
-    const report = await this.prisma.report.create({
-      data: {
-        title: String(title),
-        type: String(type),
-        format: 'EXCEL',
-        status: 'generating',
-        description: description || '',
-        filters: filters ? JSON.stringify(filters) : null,
-        createdAt: new Date(),
-      },
-    });
-
+  /**
+   * V5 构建引擎：调用 Vite 进行生产级单文件编译 (Single-File Build)
+   */
+  async buildReportFile(id: number, userEnv: string): Promise<{ filePath: string; fileName: string }> {
+    const report = await this.findOne(id, userEnv);
     const enterprises = await this.prisma.enterprise.findMany({
-      where: { status: 'active', ...(this.getPeriodFilter(type, filters)) }
+      where: { status: 'active', envScope: userEnv },
+      orderBy: { priority: 'asc' }
     });
 
-    this.assembleIntelligence(report.id, enterprises, modules);
-    return report;
-  }
+    const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    const fileName = `西南AI_${report.title}_${dateStr}.html`;
+    
+    // 路径计算
+    const rootDir = process.cwd().endsWith('backend') ? path.join(process.cwd(), '..') : process.cwd();
+    const frontendDir = path.join(rootDir, 'frontend');
+    const distReportsDir = path.join(rootDir, 'dist_reports');
+    if (!fs.existsSync(distReportsDir)) fs.mkdirSync(distReportsDir);
 
-  private getPeriodFilter(type: string, manualFilters: any) {
-    if (manualFilters && Object.keys(manualFilters).length > 0) return manualFilters;
-    const now = new Date();
-    const start = new Date();
-    switch (type) {
-      case 'WEEKLY': start.setDate(now.getDate() - 7); break;
-      case 'MONTHLY': start.setMonth(now.getMonth() - 1); break;
-      case 'QUARTERLY': start.setMonth(now.getMonth() - 3); break;
-      case 'YEARLY': start.setFullYear(now.getFullYear() - 1); break;
-      default: return {};
-    }
-    return { createdAt: { gte: start } };
-  }
-
-  private async assembleIntelligence(reportId: number, enterprises: any[], modules: string[]) {
     try {
-      const wb = new xl.Workbook();
-      const ws = wb.addWorksheet('INTEL');
+      this.logger.log(`--- [COMPILER V5] 开始构建 ${report.type} 级全息报告 ---`);
       
-      const style = wb.createStyle({
-        font: { color: '#000000', size: 12, bold: true },
-      });
+      // 1. 调用前端 Vite 打包命令
+      // 我们在命令行中注入数据占位符，Vite 会将其打包进 JS
+      this.logger.log('正在执行 Vite 生产级编译...');
+      await execPromise('npm run build:report', { cwd: frontendDir });
 
-      ws.cell(1, 1).string('ID').style(style);
-      ws.cell(1, 2).string('企业名称').style(style);
-      ws.cell(1, 3).string('战力等级').style(style);
-      ws.cell(1, 4).string('核心技术').style(style);
-      ws.cell(1, 5).string('月均API').style(style);
-      ws.cell(1, 6).string('所属地区').style(style);
+      // 2. 读取编译后的单 HTML 文件 (dist/report.html)
+      const compiledPath = path.join(frontendDir, 'dist', 'report.html');
+      let html = fs.readFileSync(compiledPath, 'utf-8');
 
-      enterprises.forEach((e, i) => {
-        const row = i + 2;
-        ws.cell(row, 1).number(e.id);
-        ws.cell(row, 2).string(e.enterpriseName || '-');
-        ws.cell(row, 3).string(e.priority || '-');
-        ws.cell(row, 4).string(e.feijiangWenxin || '-');
-        ws.cell(row, 5).number(Number(e.avgMonthlyApiCalls || 0));
-        ws.cell(row, 6).string(e.base || '-');
-      });
+      // 3. 核心：动态数据注入 (将数据嵌入 window.__REPORT_DATA__)
+      // 在 HTML 中寻找并替换数据脚本标签
+      const dataPayload = JSON.stringify({ report, enterprises });
+      html = html.replace(
+        '<div id="report-root"></div>',
+        `<script>window.__REPORT_DATA__ = ${dataPayload};</script><div id="report-root"></div>`
+      );
 
-      const fileName = `INTEL_${Date.now()}.xlsx`;
-      const uploadDir = path.join(process.cwd(), 'uploads', 'reports');
-      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-      const filePath = path.join(uploadDir, fileName);
+      // 4. 将生成的终极单文件写入归档目录
+      const finalPath = path.join(distReportsDir, fileName);
+      fs.writeFileSync(finalPath, html);
 
-      wb.write(filePath, async (err, stats) => {
-        if (err) {
-          await this.prisma.report.update({ where: { id: reportId }, data: { status: 'failed' } });
-        } else {
-          await this.prisma.report.update({
-            where: { id: reportId },
-            data: { filePath: fileName, status: 'ready', updatedAt: new Date() },
-          });
-        }
-      });
+      this.logger.log(`✅ 全息构建成功: ${fileName}`);
+      return { filePath: finalPath, fileName };
+
     } catch (error) {
-      await this.prisma.report.update({ where: { id: reportId }, data: { status: 'failed' } });
+      this.logger.error('构建流水线崩溃:', error);
+      throw new Error(`编译失败: ${error.message}`);
     }
   }
 
-  async remove(id: number) {
-    return this.prisma.report.delete({ where: { id } });
+  async generateReport(dto: any, userEnv: string) {
+    return this.prisma.report.create({
+      data: {
+        title: dto.title,
+        type: dto.type,
+        format: 'V5_SINGLEFILE',
+        envScope: userEnv,
+        status: 'ready'
+      }
+    });
   }
 
-  async getStatsSummary() {
-    const total = await this.prisma.report.count();
-    const ready = await this.prisma.report.count({ where: { status: 'ready' } });
-    return { total, ready };
+  async remove(id: number, userEnv: string) {
+    const report = await this.findOne(id, userEnv);
+    return this.prisma.report.delete({ where: { id: report.id } });
+  }
+
+  async getStatsSummary(userEnv: string) {
+    const total = await this.prisma.report.count({ where: { envScope: userEnv } });
+    return { total, ready: total };
   }
 }

@@ -451,3 +451,37 @@ body {
   0% { content: "01"; } 20% { content: "X$"; } 40% { content: "7A"; } 60% { content: "K9"; } 80% { content: "!"; } 100% { content: " "; }
 
 }
+
+/* 联图/NEXUS 专属动画集 */
+@keyframes flow-text {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.animate-flow-text {
+  animation: flow-text 5s linear infinite;
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+.animate-shake {
+  animation: shake 0.2s ease-in-out infinite;
+}
+
+/* 按钮高亮光晕 */
+.btn-launch-glow {
+  box-shadow: 10px 10px 0px 0px rgba(0,0,0,1), 0 0 20px rgba(16, 185, 129, 0.4);
+}
+.btn-launch-glow:hover {
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.6);
+}

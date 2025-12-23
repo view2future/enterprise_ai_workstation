@@ -1,18 +1,5 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  Query,
-  HttpCode,
-  HttpStatus,
-  UsePipes,
-  ValidationPipe,
-  UseGuards,
-  Request
+  Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode, HttpStatus, UsePipes, ValidationPipe, UseGuards, Request, Logger
 } from '@nestjs/common';
 import { EnterprisesService } from '../services/enterprises.service';
 import { CreateEnterpriseDto, UpdateEnterpriseDto, EnterpriseFilterDto } from '../dto/enterprise.dto';
@@ -22,41 +9,46 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 @UseGuards(JwtAuthGuard)
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class EnterprisesController {
+  private readonly logger = new Logger(EnterprisesController.name);
+
   constructor(private readonly enterprisesService: EnterprisesService) {}
 
   @Get('stats/summary')
   async getStatistics(@Request() req) {
-    return this.enterprisesService.getStatistics(req.user.env);
+    this.logger.log(`[AUDIT] GET Statistics | Env: ${req.user.envScope}`);
+    return this.enterprisesService.getStatistics(req.user.envScope);
   }
 
   @Get('action/map-data-full')
   async getMapData(@Request() req) {
-    return this.enterprisesService.findAll({ limit: 1000, page: 0 }, req.user.env);
+    this.logger.log(`[AUDIT] GET MapData Full | Env: ${req.user.envScope}`);
+    return this.enterprisesService.findAll({ limit: 1000, page: 0 }, req.user.envScope);
   }
 
   @Get()
   async findAll(@Query() filters: EnterpriseFilterDto, @Request() req) {
-    return this.enterprisesService.findAll(filters, req.user.env);
+    this.logger.log(`[AUDIT] GET Enterprise List | Env: ${req.user.envScope} | Query: ${JSON.stringify(filters)}`);
+    return this.enterprisesService.findAll(filters, req.user.envScope);
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: number, @Request() req) {
-    return this.enterprisesService.findOne(id, req.user.env);
+  async findOne(@Param('id') id: string, @Request() req) {
+    return this.enterprisesService.findOne(+id, req.user.envScope);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createEnterpriseDto: CreateEnterpriseDto, @Request() req) {
-    return this.enterprisesService.create(createEnterpriseDto, req.user.env);
+  async create(@Body() createDto: CreateEnterpriseDto, @Request() req) {
+    return this.enterprisesService.create(createDto, req.user.envScope);
   }
 
   @Put(':id')
-  async update(@Param('id') id: number, @Body() updateEnterpriseDto: UpdateEnterpriseDto, @Request() req) {
-    return this.enterprisesService.update(id, updateEnterpriseDto, req.user.env);
+  async update(@Param('id') id: string, @Body() updateDto: UpdateEnterpriseDto, @Request() req) {
+    return this.enterprisesService.update(+id, updateDto, req.user.envScope);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: number, @Request() req) {
-    return this.enterprisesService.remove(id, req.user.env);
+  async remove(@Param('id') id: string, @Request() req) {
+    return this.enterprisesService.remove(+id, req.user.envScope);
   }
 }

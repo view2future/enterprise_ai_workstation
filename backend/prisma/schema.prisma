@@ -29,7 +29,7 @@ model User {
 model Enterprise {
   id                Int      @id @default(autoincrement())
   enterpriseName    String   @unique @map("企业名称")
-  env               String   @default("PROD") // 数据所属环境
+  envScope          String   @default("PROD") @map("环境域")
   feijiangWenxin    String?  @map("飞桨_文心")
   clueInTime        String?  @map("线索入库时间")
   clueUpdateTime    DateTime? @map("线索更新时间")
@@ -127,6 +127,7 @@ model Report {
   completedAt    DateTime?
   createdBy      String?
   errorMessage   String?
+  envScope       String    @default("PROD") @map("环境域")
   
   @@map("reports")
 }

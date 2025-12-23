@@ -42,20 +42,9 @@ export const reportsApi = {
     return apiClient.get<Report>(`/reports/${id}`);
   },
 
-  // 下载报告
-  downloadReport: (id: number, title: string) => {
-    return apiClient.get(`/reports/${id}/download`, {
-      responseType: 'blob'
-    }).then((response) => {
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${title}.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    });
+  // 构建报告 (V2.0 - 物理编译模式)
+  buildReport: (id: number) => {
+    return apiClient.post<{ success: boolean; filePath: string; fileName: string }>(`/reports/${id}/build`);
   },
 
   // 删除报告

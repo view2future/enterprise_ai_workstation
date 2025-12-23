@@ -1,74 +1,54 @@
 #!/bin/bash
 
-# 企业数据管理平台启动脚本
+# --- 配置区 ---
+PORT_FE=3000
+PORT_BE=3001
+LOG_DIR="./logs"
 
-set -e  # 命令失败时退出
+# 颜色定义
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-echo "==========================================="
-echo "企业数据管理平台启动脚本"
-echo "==========================================="
+echo -e "${BLUE}=== Enterprise AI Workstation V2.0 启动程序 ===${NC}"
 
-# 检查是否已安装必要的工具
-echo "检查依赖..."
-if ! command -v node &> /dev/null; then
-    echo "错误: Node.js 未安装，请先安装 Node.js 18+"
-    exit 1
-fi
+# 1. 环境准备
+mkdir -p $LOG_DIR
 
-if ! command -v npm &> /dev/null; then
-    echo "错误: npm 未安装，请先安装 npm"
-    exit 1
-fi
-
-if ! command -v psql &> /dev/null; then
-    echo "警告: PostgreSQL 未安装或未添加到PATH"
-    echo "请确保 PostgreSQL 已安装并正在运行"
-fi
-
-# 获取脚本所在目录
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
-
-echo "当前工作目录: $SCRIPT_DIR"
-
-# 检查环境配置
-ENV_FILE=".env"
-if [ ! -f "$ENV_FILE" ]; then
-    echo "警告: 未找到 $ENV_FILE 文件，正在创建示例配置..."
-    cat > "$ENV_FILE" << EOF
-# 企业数据管理平台环境配置
-PORT=3001
-NODE_ENV=development
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=enterprise_db
-DB_USER=wangyu94
-DB_PASSWORD=
-JWT_SECRET=your_jwt_secret_here_change_this_to_something_secure
-EOF
-    echo "已创建 $ENV_FILE，请根据您的实际情况修改配置"
+# 2. 状态检查与预清理
+echo -e "${YELLOW}[1/3] 正在检查服务活跃度...${NC}"
+if lsof -i :$PORT_FE >/dev/null 2>&1 || lsof -i :$PORT_BE >/dev/null 2>&1; then
+    echo -e "${RED}检测到服务正在运行，正在执行强制重置...${NC}"
+    ./stop.sh
+    sleep 2
 else
-    echo "已找到环境配置文件: $ENV_FILE"
+    echo -e "${GREEN}端口处于空闲状态，准备直接启动。${NC}"
 fi
 
-# 检查后端目录
-BACKEND_DIR="backend"
-if [ ! -d "$BACKEND_DIR" ]; then
-    echo "错误: 后端目录 $BACKEND_DIR 不存在"
-    exit 1
-fi
+# 3. 启动后端
+echo -e "${YELLOW}[2/3] 正在启动后端引擎 (3001)...${NC}"
+cd backend
+npx prisma generate > /dev/null 2>&1
+nohup npm run start:dev > ../$LOG_DIR/backend.log 2>&1 &
+echo $! > ../$LOG_DIR/backend.pid
+cd ..
 
-# 检查前端目录
-FRONTEND_DIR="frontend"
-if [ ! -d "$FRONTEND_DIR" ]; then
-    echo "错误: 前端目录 $FRONTEND_DIR 不存在"
-    exit 1
-fi
+# 4. 启动前端
+echo -e "${YELLOW}[3/3] 正在启动前端指挥大屏 (3000)...${NC}"
+cd frontend
+nohup npm run dev > ../$LOG_DIR/frontend.log 2>&1 &
+echo $! > ../$LOG_DIR/frontend.pid
+cd ..
 
-echo ""
-echo "==========================================="
-echo "启动开发环境..."
-echo "==========================================="
-
-# 运行开发启动脚本
-exec ./start_dev.sh
+# 5. 完成
+sleep 2
+echo -e "${GREEN}------------------------------------------------${NC}"
+echo -e "${GREEN}系统已上线！${NC}"
+echo -e "${BLUE}▶ 前端入口: http://localhost:3000${NC}"
+echo -e "${BLUE}▶ 后端接口: http://localhost:3001/api${NC}"
+echo -e "${YELLOW}查看实时日志:${NC}"
+echo -e "  tail -f $LOG_DIR/backend.log"
+echo -e "  tail -f $LOG_DIR/frontend.log"
+echo -e "${GREEN}------------------------------------------------${NC}"

@@ -226,7 +226,10 @@ const EnterprisesPage: React.FC = () => {
                         />
                       </td>
                       <td className="px-6 py-4 relative">
-                        <div className="text-sm font-black text-gray-900 border-b-2 border-dashed border-gray-300 inline-block cursor-help hover:border-blue-600">
+                        <div 
+                          className="text-sm font-black text-gray-900 border-b-2 border-dashed border-gray-300 inline-block cursor-pointer hover:border-blue-600 hover:text-blue-600 transition-colors"
+                          onClick={() => navigate(`/enterprises/${enterprise.id}`)}
+                        >
                           {enterprise.enterpriseName}
                         </div>
                         <div className="hidden group-hover/row:block absolute left-full top-0 ml-4 z-[60] w-64 animate-in fade-in slide-in-from-left-2">
