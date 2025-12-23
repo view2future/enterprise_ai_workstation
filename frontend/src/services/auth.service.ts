@@ -35,5 +35,15 @@ export const authApi = {
   // 获取当前用户信息
   getProfile: () => {
     return apiClient.get<User>('/auth/profile');
+  },
+
+  // 获取所有用户 (管理端使用)
+  getAllUsers: () => {
+    return apiClient.get<User[]>('/users');
+  },
+
+  // 删除用户
+  deleteUser: (id: number) => {
+    return apiClient.delete(`/users/${id}`);
   }
 };

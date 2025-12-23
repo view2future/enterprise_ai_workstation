@@ -2,7 +2,7 @@ import React from 'react';
 import { Report } from '../../../services/report.service';
 import { 
   Target, TrendingUp, Award, Zap, ShieldCheck, Rocket, PieChart, Cpu, BarChart3, 
-  Search, Info, CheckCircle, Map, Layers
+  Search, Info, CheckCircle, Map, Layers, ArrowRight
 } from 'lucide-react';
 import { NeubrutalCard } from '../../ui/neubrutalism/NeubrutalComponents';
 import { 

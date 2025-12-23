@@ -72,15 +72,15 @@ async function main() {
 
       // 技术矩阵
       paddleUsageLevel: tech === '飞桨' ? (isP0 ? '深度定制' : '基础调用') : null,
-      paddleModels: tech === '飞桨' ? ['PP-OCRv4', 'PP-YOLOE'] : null,
+      paddleModels: tech === '飞桨' ? JSON.stringify(['PP-OCRv4', 'PP-YOLOE']) : null,
       ernieModelType: tech === '文心' ? (isP0 ? 'ERNIE 4.0' : 'ERNIE 3.5') : null,
       avgMonthlyApiCalls: BigInt(Math.floor(isP0 ? 1000000 + Math.random() * 5000000 : 5000 + Math.random() * 50000)),
       aiImplementationStage: isP0 ? '全面生产' : (i % 3 === 0 ? '试点运行' : '需求调研'),
       
       // 生态合作
       partnerProgramType: isP0 ? '飞桨优选伙伴' : '文心千帆合作伙伴',
-      baiduCertificates: isP0 ? ['飞桨高级架构师'] : null,
-      eventParticipation: [{ date: '2025-03', name: 'WAVE SUMMIT', role: '演讲嘉宾' }],
+      baiduCertificates: isP0 ? JSON.stringify(['飞桨高级架构师']) : null,
+      eventParticipation: JSON.stringify([{ date: '2025-03', name: 'WAVE SUMMIT', role: '演讲嘉宾' }]),
       
       status: 'active',
       createdAt: date,

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi, User } from '../../services/auth.service';
-import { Eye, Edit, Trash2, Plus, Search } from 'lucide-react';
+import { Edit, Trash2, Plus, Search } from 'lucide-react';
 
 interface UserManagementProps {
   currentUserRole: string;
@@ -16,7 +16,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserRole }) => {
   // 获取所有用户
   const { data: users, isLoading, error } = useQuery({
     queryKey: ['users'],
-    queryFn: () => authApi.getAllUsers().then(res => res.data),
+    queryFn: () => authApi.getAllUsers().then((res: { data: User[] }) => res.data),
     enabled: currentUserRole === 'admin',
   });
 
@@ -34,7 +34,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserRole }) => {
     }
   };
 
-  const filteredUsers = users?.filter(user =>
+  const filteredUsers = users?.filter((user: User) =>
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -104,7 +104,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserRole }) => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers?.map((user) => (
+              {filteredUsers?.map((user: User) => (
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{user.username}</div>

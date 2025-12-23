@@ -11,13 +11,13 @@ import EcosystemPage from './pages/Dashboard/EcosystemPage';
 import WarRoomPage from './pages/Dashboard/WarRoomPage';
 import EnterprisesPage from './pages/Enterprises/EnterprisesPage';
 import EnterpriseDetailPageV2 from './pages/EnterpriseDetail/EnterpriseDetailPageV2';
-import EnterpriseEditPage from './pages/EnterpriseDetail/EnterpriseEditPage';
 import EnterpriseFormPage from './pages/Enterprises/EnterpriseFormPage';
 import ImportExportPage from './pages/ImportExport/ImportExportPage';
 import ReportsPage from './pages/Reports/ReportsPage';
 import ReportViewPage from './pages/Reports/ReportViewPage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import LoginPage from './pages/Auth/LoginPage';
+import LandingPage from './pages/Landing/LandingPage';
 
 // 受有认证的路由组件
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -27,14 +27,14 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   // 如果用户已登录，直接访问主页
   if (isAuthenticated && token) {
     // 如果当前在登录页，重定向到仪表板
-    if (location.pathname === '/login') {
+    if (location.pathname === '/login' || location.pathname === '/landing') {
       return <Navigate to="/dashboard" replace />;
     }
     return <>{children}</>;
   }
 
-  // 如果未登录且不在登录页，重定向到登录页
-  if (location.pathname !== '/login' && !isAuthenticated) {
+  // 如果未登录且不在登录页/着陆页，重定向到登录页
+  if (location.pathname !== '/login' && location.pathname !== '/landing' && !isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
@@ -48,7 +48,7 @@ const UnprotectedRoute: React.FC<{ children: React.ReactNode }> = ({ children })
   const location = useLocation();
 
   // 如果已登录，重定向到仪表板
-  if (isAuthenticated && location.pathname === '/login') {
+  if (isAuthenticated && (location.pathname === '/login' || location.pathname === '/landing')) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -67,6 +67,14 @@ const MainApp: React.FC = () => {
 
   return (
     <Routes>
+      <Route 
+        path="/landing" 
+        element={
+          <UnprotectedRoute>
+            <LandingPage />
+          </UnprotectedRoute>
+        } 
+      />
       <Route 
         path="/login" 
         element={

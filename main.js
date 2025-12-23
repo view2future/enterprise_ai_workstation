@@ -31,11 +31,14 @@ function createWindow() {
 
 function startBackend() {
   const isDev = !app.isPackaged;
-  const backendPath = isDev 
-    ? path.join(__dirname, 'backend/dist/main.js')
-    : path.join(process.resourcesPath, 'backend/main.js');
+  let backendPath = path.join(__dirname, 'backend/dist/main.js');
+  
+  if (!isDev) {
+    backendPath = backendPath.replace('app.asar', 'app.asar.unpacked');
+  }
 
   console.log('🚀 正在启动联图智研后端引擎...');
+  console.log(`Backend path: ${backendPath}`);
   
   backendProcess = spawn('node', [backendPath], {
     env: { ...process.env, DATABASE_URL: `file:${path.join(app.getPath('userData'), 'nexus_desktop.db')}` }

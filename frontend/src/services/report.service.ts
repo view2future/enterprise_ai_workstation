@@ -24,6 +24,7 @@ export interface Report {
   filePath?: string;
   createdAt: string;
   updatedAt: string;
+  envScope: string;
 }
 
 export const reportsApi = {

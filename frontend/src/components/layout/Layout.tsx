@@ -93,11 +93,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
-  const navItems = [
+  const navItems: { path: string; label: string; icon: any; onClick?: () => void }[] = [
     { path: '/dashboard', label: '仪表板', icon: LayoutDashboard },
     { path: '/dashboard/war-map', label: '战术地图', icon: Map },
     { path: '/enterprises', label: '企业管理', icon: Building2 },
-    // { path: '#veracity', label: '真值控制台', icon: ShieldCheck, onClick: () => setIsVeracityOpen(true) },
     { path: '/import-export', label: '导入导出', icon: FileOutput },
     { path: '/reports', label: '报告', icon: BarChart3 },
     { path: '/settings', label: '设置', icon: Settings },

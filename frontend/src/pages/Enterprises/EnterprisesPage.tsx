@@ -20,7 +20,8 @@ import {
   List,
   ArrowUpRight,
   Shield,
-  Swords
+  Swords,
+  Fingerprint
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 

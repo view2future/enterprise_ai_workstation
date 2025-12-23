@@ -58,39 +58,56 @@ export class DashboardService {
   }
 
   async getChartData(timeRange: string = 'all', userEnv: string = 'PROD') {
-    const where: any = { status: 'active', envScope: userEnv };
-    const techStats = await this.prisma.enterprise.groupBy({
-      by: ['feijiangWenxin'],
-      where,
-      _count: { _all: true }
-    });
+    try {
+      const where: any = { status: 'active', envScope: userEnv };
+      const techStats = await this.prisma.enterprise.groupBy({
+        by: ['feijiangWenxin'],
+        where,
+        _count: { _all: true }
+      });
 
-    const monthlyTrendData = await this.prisma.$queryRawUnsafe<any[]>(`
-      SELECT to_char("createdAt", 'YYYY-MM') as month, COUNT(*) as count 
-      FROM "enterprises" 
-      WHERE "status" = 'active' AND "环境域" = $1
-      GROUP BY 1 ORDER BY 1
-    `, userEnv);
+      // 适配 SQLite 的日期查询
+      const monthlyTrendData = await this.prisma.$queryRawUnsafe<any[]>(`
+        SELECT strftime('%Y-%m', datetime("createdAt"/1000, 'unixepoch')) as month, COUNT(*) as count 
+        FROM "enterprises" 
+        WHERE "status" = 'active' AND "环境域" = ?
+        GROUP BY 1 ORDER BY 1
+      `, userEnv).catch(err => {
+        console.error('Raw Query Error:', err);
+        return [];
+      });
 
-    return {
-      techDistribution: techStats.map(t => ({ name: t.feijiangWenxin || '其他', value: t._count._all })),
-      monthlyTrendData: monthlyTrendData.map(m => ({ month: m.month, count: Number(m.count) }))
-    };
+      return {
+        techDistribution: techStats.map(t => ({ name: t.feijiangWenxin || '其他', value: t._count._all })),
+        monthlyTrendData: monthlyTrendData.map(m => ({ 
+          month: m.month || new Date().toISOString().slice(0, 7), 
+          count: Number(m.count || 0) 
+        }))
+      };
+    } catch (error) {
+      console.error('getChartData error:', error);
+      return { techDistribution: [], monthlyTrendData: [] };
+    }
   }
 
   async getRecentActivities(timeRange: string = 'all', userEnv: string = 'PROD') {
-    const where: any = { status: 'active', envScope: userEnv };
-    const recent = await this.prisma.enterprise.findMany({
-      where,
-      orderBy: { updatedAt: 'desc' },
-      take: 10,
-    });
-    return recent.map(ent => ({
-      id: ent.id,
-      name: ent.enterpriseName,
-      activityType: '更新',
-      description: `捕获异动: ${ent.enterpriseName}`
-    }));
+    try {
+      const where: any = { status: 'active', envScope: userEnv };
+      const recent = await this.prisma.enterprise.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        take: 10,
+      });
+      return recent.map(ent => ({
+        id: ent.id,
+        name: ent.enterpriseName,
+        activityType: '更新',
+        description: `捕获异动: ${ent.enterpriseName}`
+      }));
+    } catch (error) {
+      console.error('getRecentActivities error:', error);
+      return [];
+    }
   }
 
   async getTechRadarData(userEnv: string = 'PROD') {

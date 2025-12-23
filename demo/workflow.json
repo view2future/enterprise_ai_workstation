@@ -1,4 +1,3 @@
-
 {
   "settings": {
     "baseUrl": "http://localhost:3000",
@@ -9,6 +8,21 @@
       "action": "goto",
       "url": "/dashboard",
       "subtitle": "欢迎使用‘联图/Nexus’。正在接入西南AI产业生态智研决策平台..."
+    },
+    {
+      "action": "hover",
+      "selector": ".lucide-message-square",
+      "subtitle": "V2.0 核心能力：战略指挥官 AI 实时评述。系统自动从海量数据中提取关键态势并给出行动建议。"
+    },
+    {
+      "action": "hover",
+      "selector": ".lucide-sliders",
+      "subtitle": "政策模拟沙盒：基于博弈论模型，实时演算不同政策投入对产业能级的长周期影响。"
+    },
+    {
+      "action": "hover",
+      "selector": ".lucide-shield-check",
+      "subtitle": "补链导航系统：全量扫描西南 AI 产业链，识别算力与模型层的‘卡脖子’风险点并提供拓扑导航。"
     },
     {
       "action": "hover",

@@ -13,6 +13,7 @@ import { soundEngine } from '../../utils/SoundUtility';
 import { useNavigate } from 'react-router-dom';
 import { CommandNotification } from '../../components/common/CommandNotification';
 import { motion, AnimatePresence } from 'framer-motion';
+import { NexusLogo } from '../../components/ui/neubrutalism/NexusLogo';
 
 const ReportsPage: React.FC = () => {
   const navigate = useNavigate();

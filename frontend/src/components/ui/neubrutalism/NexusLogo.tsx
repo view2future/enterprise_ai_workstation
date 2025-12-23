@@ -29,8 +29,8 @@ export const NexusLogo: React.FC<NexusLogoProps> = ({
   };
 
   // 动画配置
-  const breatheTransition = { duration: 4, repeat: Infinity, ease: "easeInOut" };
-  const flowTransition = { duration: 2, repeat: Infinity, ease: "linear" };
+  const breatheTransition: any = { duration: 4, repeat: Infinity, ease: "easeInOut" };
+  const flowTransition: any = { duration: 2, repeat: Infinity, ease: "linear" };
 
   return (
     <div className={`flex items-center gap-4 ${className}`}>
