@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { reportsApi, Report } from '../../services/report.service';
@@ -11,10 +10,14 @@ import {
   Unlock,
   Maximize2,
   Printer,
-  Share2
+  Share2,
+  Box,
+  FileCheck
 } from 'lucide-react';
 import { NeubrutalButton, NeubrutalCard } from '../../components/ui/neubrutalism/NeubrutalComponents';
 import { soundEngine } from '../../utils/SoundUtility';
+import { CommandNotification } from '../../components/common/CommandNotification';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // 导入模板
 import WeeklyTemplate from '../../components/reports/templates/WeeklyTemplate';
@@ -28,10 +31,16 @@ const ReportViewPage: React.FC = () => {
   const navigate = useNavigate();
   const [isDecrypting, setIsDecrypting] = useState(true);
   const [showContent, setShowContent] = useState(false);
+  const [isBuilding, setIsBuilding] = useState(false);
   
-  // 下钻状态
-  const [drillDownData, setDrillDownData] = useState<DrillDownData | null>(null);
+  const [notifState, setNotifState] = useState({
+    isOpen: false,
+    fileName: '',
+    filePath: ''
+  });
+
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [drillDownData, setDrillDownData] = useState<DrillDownData | null>(null);
 
   const handleDrillDown = (title: string, type: 'enterprise' | 'list', items: any[]) => {
     setDrillDownData({ title, type, items });
@@ -59,7 +68,6 @@ const ReportViewPage: React.FC = () => {
 
   useEffect(() => {
     if (!isLoading && report) {
-      // 模拟解密过程
       const timer = setTimeout(() => {
         setIsDecrypting(false);
         soundEngine.playSuccess();
@@ -69,14 +77,41 @@ const ReportViewPage: React.FC = () => {
     }
   }, [isLoading, report]);
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  const [buildStatus, setBuildStatus] = useState({
+    isBuilding: false,
+    progress: 0,
+    step: ''
+  });
 
-  const handleDownload = () => {
+  const handleBuildReport = async () => {
     if (report) {
       soundEngine.playTick();
-      reportsApi.downloadReport(report.id, report.title);
+      setBuildStatus({ isBuilding: true, progress: 0, step: '初始化构建协议...' });
+      
+      try {
+        // 模拟进度流
+        const steps = [
+          { p: 20, s: '正在解密全量资产记录...' },
+          { p: 45, s: '正在注入全息渲染模版...' },
+          { p: 75, s: '正在编译单一 HTML 卷宗...' },
+          { p: 90, s: '正在执行物理归档 /dist_reports...' }
+        ];
+
+        for (const step of steps) {
+          await new Promise(r => setTimeout(r, 600));
+          setBuildStatus(prev => ({ ...prev, progress: step.p, step: step.s }));
+        }
+
+        const response = await reportsApi.buildReport(report.id);
+        const { fileName, filePath } = response.data;
+        
+        setBuildStatus({ isBuilding: false, progress: 100, step: '完成' });
+        setNotifState({ isOpen: true, fileName, filePath });
+      } catch (err) {
+        console.error('Holographic build failed:', err);
+        setBuildStatus({ isBuilding: false, progress: 0, step: '' });
+        alert('构建失败：服务器物理链路中断。');
+      }
     }
   };
 
@@ -84,7 +119,7 @@ const ReportViewPage: React.FC = () => {
     return (
       <div className="h-[70vh] flex flex-col items-center justify-center">
         <div className="loading-spinner text-8xl mb-4 opacity-20">⚙️</div>
-        <p className="font-black animate-pulse text-2xl tracking-tighter italic">正在从机密服务器提取档案...</p>
+        <p className="font-black animate-pulse text-2xl tracking-tighter italic">正在调取情报档案...</p>
       </div>
     );
   }
@@ -92,54 +127,85 @@ const ReportViewPage: React.FC = () => {
   if (error || !report) {
     return (
       <div className="p-10 text-center">
-        <NeubrutalCard className="max-w-md mx-auto border-red-500 !shadow-[10px_10px_0px_0px_rgba(239,68,68,1)]">
+        <NeubrutalCard className="max-w-md mx-auto border-red-500">
           <ShieldAlert size={64} className="mx-auto text-red-500 mb-6" />
-          <h2 className="text-3xl font-black uppercase mb-4 italic tracking-tighter">访问拒绝 / 档案损坏</h2>
-          <p className="text-gray-500 mb-8 font-bold leading-relaxed">无法找到指定编号的战术简报。可能该文件已被物理销毁、过期或当前账户权限不足以解密此级别的情报。</p>
+          <h2 className="text-3xl font-black uppercase mb-4 italic tracking-tighter">访问拒绝</h2>
           <NeubrutalButton onClick={() => navigate('/reports')} className="w-full">返回情报中心</NeubrutalButton>
         </NeubrutalCard>
       </div>
     );
   }
 
-  // 渲染对应的模板
   const renderTemplate = () => {
     const props = { report, onDrillDown: handleDrillDown };
     switch (report.type) {
-      case 'WEEKLY':
-        return <WeeklyTemplate {...props} />;
-      case 'MONTHLY':
-        return <MonthlyTemplate {...props} />;
-      case 'QUARTERLY':
-        return <QuarterlyTemplate {...props} />;
-      case 'YEARLY':
-        return <YearlyTemplate {...props} />;
-      default:
-        return <MonthlyTemplate {...props} />;
+      case 'WEEKLY': return <WeeklyTemplate {...props} />;
+      case 'MONTHLY': return <MonthlyTemplate {...props} />;
+      case 'QUARTERLY': return <QuarterlyTemplate {...props} />;
+      case 'YEARLY': return <YearlyTemplate {...props} />;
+      default: return <MonthlyTemplate {...props} />;
     }
   };
 
   return (
     <div className="relative min-h-screen bg-gray-50/50">
-      {/* 滚动进度条 */}
-      <div 
-        className="fixed top-0 left-0 h-2 bg-blue-600 z-[100] transition-all duration-100 ease-out"
-        style={{ width: `${scrollProgress}%` }}
-      ></div>
+      <div className="fixed top-0 left-0 h-2 bg-blue-600 z-[100] transition-all duration-100" style={{ width: `${scrollProgress}%` }}></div>
 
-      <IntelDrillDownDrawer 
-        isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)} 
-        data={drillDownData} 
+      <IntelDrillDownDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} data={drillDownData} />
+
+      <CommandNotification
+        isOpen={notifState.isOpen}
+        onClose={() => setNotifState({ ...notifState, isOpen: false })}
+        title="静态构建成功"
+        message={`离线情报卷宗已完成物理编译。全量数据已封装为单一 HTML 资产并保存至项目 dist_reports 目录下。`}
+        fileName={notifState.fileName}
       />
 
-      {/* 顶部工具栏 (HUD) */}
+      {/* 构建进度 HUD */}
+      <AnimatePresence>
+        {buildStatus.isBuilding && (
+          <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-gray-950/80 backdrop-blur-xl">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="w-full max-w-md bg-gray-900 border-4 border-blue-500 p-8 shadow-[0_0_50px_rgba(59,130,246,0.5)]"
+            >
+              <div className="flex items-center gap-4 mb-8">
+                <Box className="text-blue-400 animate-spin" size={32} />
+                <div>
+                  <h3 className="text-white font-black uppercase italic tracking-tighter">Dossier_Compiler V2.0</h3>
+                  <p className="text-[8px] text-blue-500 font-bold uppercase tracking-widest">Compiling intelligence artifacts...</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="h-4 bg-gray-800 border-2 border-gray-700 p-1 overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${buildStatus.progress}%` }}
+                    className="h-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,1)]"
+                  ></motion.div>
+                </div>
+                
+                <div className="flex justify-between font-mono text-[9px]">
+                  <span className="text-blue-400 animate-pulse">{buildStatus.step}</span>
+                  <span className="text-white">{buildStatus.progress}%</span>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-gray-800 opacity-20 font-mono text-[7px] text-gray-500">
+                [SYSTEM]: EXECUTING BINARY_MERGE... OK<br/>
+                [SYSTEM]: MAPPING NODES (526/526)... OK
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b-4 border-gray-900 p-4 flex items-center justify-between shadow-[0px_4px_0px_0px_rgba(0,0,0,1)]">
         <div className="flex items-center gap-6">
-          <button 
-            onClick={() => navigate('/reports')}
-            className="p-3 border-4 border-gray-900 bg-white hover:bg-yellow-400 active:translate-y-1 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none"
-          >
+          <button onClick={() => navigate('/reports')} className="p-3 border-4 border-gray-900 bg-white hover:bg-yellow-400 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             <ArrowLeft size={24} />
           </button>
           <div>
@@ -147,37 +213,23 @@ const ReportViewPage: React.FC = () => {
               <span className="bg-red-600 text-white text-[10px] font-black px-2 py-0.5 uppercase leading-tight italic">Top Secret</span>
               <h1 className="text-2xl font-black uppercase italic tracking-tighter leading-none">{report.title}</h1>
             </div>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em]">
-              ID: {report.id} // SEC_LVL: 07 // TYPE: {report.type} // ISSUED: {new Date(report.createdAt).toLocaleDateString()}
-            </p>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">ID: {report.id} // BUILD_MODE: PHYSICAL_HTML</p>
           </div>
         </div>
 
         <div className="flex gap-4">
-          <button onClick={handleDownload} className="flex items-center gap-2 px-4 py-2 border-4 border-gray-900 bg-blue-600 text-white font-black uppercase text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
-            <Download size={18} /> 提取物理文档
+          <button 
+            onClick={handleBuildReport} 
+            disabled={isBuilding}
+            className={`flex items-center gap-2 px-4 py-2 border-4 border-gray-900 font-black uppercase text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${isBuilding ? 'bg-gray-400 cursor-wait' : 'bg-blue-600 text-white hover:shadow-none hover:translate-x-1 hover:translate-y-1'}`}
+          >
+            {isBuilding ? <Box className="animate-spin" size={18} /> : <FileCheck size={18} />}
+            {isBuilding ? '正在编译卷宗...' : '提取报告'}
           </button>
-          <button className="p-2 border-4 border-gray-900 bg-white hover:bg-gray-100 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none">
-            <Printer size={20} />
-          </button>
+          <button className="p-2 border-4 border-gray-900 bg-white hover:bg-gray-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"><Printer size={20} /></button>
         </div>
       </div>
 
-      {/* 解密层 */}
-      {isDecrypting && (
-        <div className="h-[80vh] flex flex-col items-center justify-center">
-          <div className="relative mb-12">
-            <div className="absolute inset-0 bg-blue-500/20 blur-3xl animate-pulse rounded-full"></div>
-            <Lock size={120} className="relative z-10 text-gray-900 animate-bounce" />
-          </div>
-          <div className="w-80 h-6 bg-white border-4 border-gray-900 overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-            <div className="h-full bg-blue-600 animate-[loading_1.5s_ease-in-out]" style={{ width: '100%' }}></div>
-          </div>
-          <p className="mt-8 font-black uppercase text-sm tracking-[1em] italic animate-pulse">Decrypting Intelligence...</p>
-        </div>
-      )}
-
-      {/* 报告内容展示区 */}
       {!isDecrypting && (
         <div className={`transition-all duration-1000 ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'}`}>
           <div className="max-w-6xl mx-auto px-4 pt-12">
@@ -185,32 +237,17 @@ const ReportViewPage: React.FC = () => {
               <Unlock size={18} />
               <span className="font-black text-xs uppercase tracking-widest italic animate-pulse">Access Granted: Full Intelligence Decrypted</span>
             </div>
-            
             {renderTemplate()}
-            
-            <div className="mt-40 border-t-[16px] border-gray-900 pt-20 text-center pb-20">
-              <p className="text-sm font-black text-gray-400 uppercase tracking-[1.5em] mb-10">End of Intelligence Briefing</p>
-              <div className="flex justify-center gap-8 opacity-20">
-                <div className="w-16 h-16 border-8 border-gray-900"></div>
-                <div className="w-16 h-16 border-8 border-gray-900 rounded-full"></div>
-                <div className="w-16 h-16 border-8 border-gray-900 rotate-45"></div>
-              </div>
-              <p className="mt-10 text-[10px] font-bold text-gray-300 uppercase tracking-widest italic">
-                Processed by Neural Analyzer v7.4.2 // (c) 2025 Enterprise AI Workstation
-              </p>
-            </div>
+            <div className="mt-40 border-t-[16px] border-gray-900 pt-20 text-center pb-20 opacity-50 italic uppercase tracking-widest text-[10px]">End of Intelligence Briefing // (c) 2025 Enterprise AI Workstation</div>
           </div>
         </div>
       )}
 
-      {/* 返回顶部按钮 */}
-      {showContent && (
-        <button 
-          onClick={scrollToTop}
-          className={`fixed bottom-10 right-10 p-4 bg-yellow-400 border-4 border-gray-900 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all z-[90] ${scrollProgress > 10 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-        >
-          <ArrowLeft size={24} className="rotate-90" />
-        </button>
+      {isDecrypting && (
+        <div className="h-[80vh] flex flex-col items-center justify-center">
+          <Lock size={120} className="text-gray-900 animate-bounce mb-8" />
+          <p className="font-black uppercase text-sm tracking-[1em] italic animate-pulse text-gray-400">Decrypting Intelligence...</p>
+        </div>
       )}
     </div>
   );

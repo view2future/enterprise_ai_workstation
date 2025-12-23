@@ -17,12 +17,15 @@ export const CommandPalette: React.FC = () => {
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
 
-  // 监听快捷键 Cmd+K 或 Ctrl+K
+  // 监听快捷键 Cmd+K 或 Ctrl+K，以及 Esc
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((open) => !open);
+      }
+      if (e.key === 'Escape') {
+        setOpen(false);
       }
     };
 

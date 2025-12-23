@@ -57,32 +57,8 @@ const UnprotectedRoute: React.FC<{ children: React.ReactNode }> = ({ children })
 
 // 主应用组件
 const MainApp: React.FC = () => {
-  const { isAuthenticated, token, login } = useAuth();
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
-
-  // 如果用户未认证且在主页，尝试自动登录
-  React.useEffect(() => {
-    if (!isAuthenticated && location.pathname === '/') {
-      const autoLogin = async () => {
-        try {
-          // 使用演示凭据自动登录
-          await login('demo@example.example.com', 'password123');
-          // 登录成功后会自动重定向到仪表板
-        } catch (error) {
-          // 如果自动登录失败，重定向到登录页
-          navigate('/login');
-        }
-      };
-
-      // 延迟执行自动登录，给应用一点时间初始化
-      const timer = setTimeout(() => {
-        autoLogin();
-      }, 1000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [isAuthenticated, location.pathname, login, navigate]);
 
   // 如果已认证且在根路径，重定向到仪表板
   if (isAuthenticated && location.pathname === '/') {

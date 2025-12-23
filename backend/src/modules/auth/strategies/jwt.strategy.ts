@@ -1,34 +1,31 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtPayload } from '../interfaces/jwt-payload.interface';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
+  private readonly logger = new Logger(JwtStrategy.name);
+
   constructor(private configService: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') || 'default_secret',
+      secretOrKey: configService.get<string>('JWT_SECRET') || 'ENTERPRISE_SECRET_2025',
     });
   }
 
-  async validate(payload: JwtPayload) {
-    // 检查是否是演示用户的JWT
-    if (payload.email === 'demo@example.com') {
-      return {
-        id: payload.sub,
-        email: payload.email,
-        role: payload.role,
-      };
-    }
-
-    // 对于非演示用户，从数据库验证
-    return {
-      id: payload.sub,
-      email: payload.email,
+  async validate(payload: any) {
+    // 兼容性提取：支持新旧两种 Key
+    const env = payload.envScope || payload.env || 'PROD';
+    
+    const context = {
+      sub: payload.sub,
+      username: payload.username,
       role: payload.role,
+      envScope: env // 统一向下游传递 envScope
     };
+
+    return context;
   }
 }

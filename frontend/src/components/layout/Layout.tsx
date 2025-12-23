@@ -27,6 +27,7 @@ import { enterpriseApi } from '../../services/enterprise.service';
 import { CommandPalette } from '../CommandPalette';
 import { OperationalLiveFeed } from './OperationalLiveFeed';
 import { CinematicOverlay } from '../CinematicOverlay';
+import { NexusLogo } from '../ui/neubrutalism/NexusLogo';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -106,9 +107,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </button>
 
         <div className={`p-6 border-b-4 border-gray-900 flex items-center gap-3 overflow-hidden ${isCollapsed ? 'justify-center px-2' : ''}`}>
-          <div className="bg-blue-600 p-2 border-2 border-white rounded-lg animate-bot shrink-0 shadow-[0_0_15px_rgba(37,99,235,0.5)]">
-            <Bot size={24} />
-          </div>
+          <NexusLogo size="sm" color="bg-blue-600" />
           <AnimatePresence>
             {!isCollapsed && (
               <motion.h1 
@@ -212,19 +211,45 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                </div>
             </div>
 
-            {/* 主题切换拨片 (Scheme 12) */}
-            <div className="hidden lg:flex bg-gray-200 border-2 border-gray-800 p-1 rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] mr-4">
-              {(['baidu', 'deep-ops', 'nuclear'] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => { soundEngine.playTick(); setTheme(t); }}
-                  className={`px-2 py-1 text-[8px] font-black uppercase transition-all ${
-                    theme === t ? 'bg-gray-800 text-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] -translate-x-0.5 -translate-y-0.5' : 'text-gray-500 hover:text-gray-800'
-                  }`}
-                >
-                  {t.replace('-', ' ')}
-                </button>
-              ))}
+            {/* 滚动密码锁主题切换器 (Combination Lock Style) */}
+            <div 
+              className="hidden lg:block relative h-[36px] w-[100px] bg-white border-4 border-gray-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden cursor-pointer group active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all mr-4"
+              onClick={() => {
+                soundEngine.playPneumatic();
+                const themes: any[] = ['cyber', 'stealth', 'hazard'];
+                const currentIndex = themes.indexOf(theme);
+                const nextTheme = themes[(currentIndex + 1) % themes.length];
+                setTheme(nextTheme);
+              }}
+              title="点击旋转密钥切换主题"
+            >
+              <motion.div
+                animate={{ 
+                  y: theme === 'cyber' ? 0 : theme === 'stealth' ? -32 : -64 
+                }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                className="flex flex-col items-center"
+              >
+                {[
+                  { id: 'cyber', label: 'CYBER' },
+                  { id: 'stealth', label: 'STEALTH' },
+                  { id: 'hazard', label: 'HAZARD' }
+                ].map((t) => (
+                  <div 
+                    key={t.id} 
+                    className="h-[32px] flex items-center justify-center w-full font-black text-[10px] tracking-[0.2em] text-gray-900"
+                  >
+                    {t.label}
+                  </div>
+                ))}
+              </motion.div>
+              {/* 装饰性侧边刻度 */}
+              <div className="absolute left-1 top-0 bottom-0 flex flex-col justify-between py-1 pointer-events-none opacity-30">
+                {[1,2,3,4].map(i => <div key={i} className="w-1 h-[2px] bg-gray-900"></div>)}
+              </div>
+              <div className="absolute right-1 top-0 bottom-0 flex flex-col justify-between py-1 pointer-events-none opacity-30">
+                {[1,2,3,4].map(i => <div key={i} className="w-1 h-[2px] bg-gray-900"></div>)}
+              </div>
             </div>
 
             {/* 动态系统状态 HUD */}
@@ -245,6 +270,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <Database size={10} className="text-blue-400" />
                   <span className="text-xs font-black italic leading-none">{totalEnterprises ?? '---'} ENT</span>
                 </div>
+              </div>
+
+              <div className={`border-2 border-gray-900 px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1 ${user?.envScope === 'DEMO' ? 'bg-yellow-400 text-gray-900' : 'bg-red-600 text-white'}`}>
+                <Zap size={10} className={user?.envScope === 'DEMO' ? 'fill-gray-900' : 'fill-white'} />
+                <span className="text-[9px] font-black uppercase">{user?.envScope === 'DEMO' ? 'Tactical Demo' : 'Strategic Prod'}</span>
               </div>
 
               <div className="bg-green-500 text-gray-900 border-2 border-gray-900 px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1">

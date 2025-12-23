@@ -18,8 +18,10 @@ model User {
   lastName  String?
   role      String   @default("analyst")
   status    String   @default("active")
+  envScope  String   @default("PROD") // 区分环境：DEMO 或 PROD
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  auditLogs AuditLog[]
   
   @@map("users")
 }
@@ -27,6 +29,7 @@ model User {
 model Enterprise {
   id                Int      @id @default(autoincrement())
   enterpriseName    String   @unique @map("企业名称")
+  envScope          String   @default("PROD") @map("环境域")
   feijiangWenxin    String?  @map("飞桨_文心")
   clueInTime        String?  @map("线索入库时间")
   clueUpdateTime    DateTime? @map("线索更新时间")
@@ -90,6 +93,22 @@ model Enterprise {
   @@map("enterprises")
 }
 
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  action      String   // CREATE, UPDATE, DELETE, SYNC_IMPORT
+  entityType  String   // Enterprise, Report
+  entityId    Int?
+  details     String?  // 操作描述
+  oldValue    Json?
+  newValue    Json?
+  timestamp   DateTime @default(now())
+  ipAddress   String?
+
+  @@map("audit_logs")
+}
+
 model Report {
   id             Int       @id @default(autoincrement())
   title          String
@@ -108,6 +127,7 @@ model Report {
   completedAt    DateTime?
   createdBy      String?
   errorMessage   String?
+  envScope       String    @default("PROD") @map("环境域")
   
   @@map("reports")
 }

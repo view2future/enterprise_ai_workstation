@@ -63,7 +63,8 @@ async function main() {
       createdAt: createdAt,
       updatedAt: createdAt,
       status: 'active',
-      dataSourceType: 'master_seed'
+      dataSourceType: 'master_seed',
+      envScope: 'DEMO'
     });
   }
 

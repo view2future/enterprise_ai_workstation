@@ -1,75 +1,54 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  Query,
-  HttpCode,
-  HttpStatus,
-  UsePipes,
-  ValidationPipe,
+  Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode, HttpStatus, UsePipes, ValidationPipe, UseGuards, Request, Logger
 } from '@nestjs/common';
 import { EnterprisesService } from '../services/enterprises.service';
 import { CreateEnterpriseDto, UpdateEnterpriseDto, EnterpriseFilterDto } from '../dto/enterprise.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @Controller('enterprises')
+@UseGuards(JwtAuthGuard)
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class EnterprisesController {
-  // VERSION: 2.0.5 - FORCE_REBUILD
+  private readonly logger = new Logger(EnterprisesController.name);
+
   constructor(private readonly enterprisesService: EnterprisesService) {}
 
-  // 1. 静态路由 (优先匹配)
   @Get('stats/summary')
-  @HttpCode(HttpStatus.OK)
-  async getStatistics() {
-    return this.enterprisesService.getStatistics();
+  async getStatistics(@Request() req) {
+    this.logger.log(`[AUDIT] GET Statistics | Env: ${req.user.envScope}`);
+    return this.enterprisesService.getStatistics(req.user.envScope);
   }
 
   @Get('action/map-data-full')
-  @HttpCode(HttpStatus.OK)
-  async getMapData() {
-    // 强制获取全量数据，绕过常规分页限制
-    return this.enterprisesService.findAll({ limit: 1000, page: 0 });
+  async getMapData(@Request() req) {
+    this.logger.log(`[AUDIT] GET MapData Full | Env: ${req.user.envScope}`);
+    return this.enterprisesService.findAll({ limit: 1000, page: 0 }, req.user.envScope);
   }
 
-  // 2. 基础列表路由
   @Get()
-  @HttpCode(HttpStatus.OK)
-  async findAll(@Query() filters: EnterpriseFilterDto) {
-    return this.enterprisesService.findAll(filters);
+  async findAll(@Query() filters: EnterpriseFilterDto, @Request() req) {
+    this.logger.log(`[AUDIT] GET Enterprise List | Env: ${req.user.envScope} | Query: ${JSON.stringify(filters)}`);
+    return this.enterprisesService.findAll(filters, req.user.envScope);
   }
 
-  // 3. 参数化路由 (最后匹配)
   @Get(':id')
-  @HttpCode(HttpStatus.OK)
-  async findOne(@Param('id') id: number) {
-    return this.enterprisesService.findOne(id);
-  }
-
-  @Get(':id/detail')
-  @HttpCode(HttpStatus.OK)
-  async getEnterpriseDetail(@Param('id') id: number) {
-    return this.enterprisesService.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req) {
+    return this.enterprisesService.findOne(+id, req.user.envScope);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createEnterpriseDto: CreateEnterpriseDto) {
-    return this.enterprisesService.create(createEnterpriseDto);
+  async create(@Body() createDto: CreateEnterpriseDto, @Request() req) {
+    return this.enterprisesService.create(createDto, req.user.envScope);
   }
 
   @Put(':id')
-  @HttpCode(HttpStatus.OK)
-  async update(@Param('id') id: number, @Body() updateEnterpriseDto: UpdateEnterpriseDto) {
-    return this.enterprisesService.update(id, updateEnterpriseDto);
+  async update(@Param('id') id: string, @Body() updateDto: UpdateEnterpriseDto, @Request() req) {
+    return this.enterprisesService.update(+id, updateDto, req.user.envScope);
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.OK)
-  async remove(@Param('id') id: number) {
-    return this.enterprisesService.remove(id);
+  async remove(@Param('id') id: string, @Request() req) {
+    return this.enterprisesService.remove(+id, req.user.envScope);
   }
 }

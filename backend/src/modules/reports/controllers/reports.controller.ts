@@ -1,74 +1,46 @@
-
 import {
-  Controller,
-  Get,
-  Post,
-  Delete,
-  Body,
-  Param,
-  HttpCode,
-  HttpStatus,
-  Res,
+  Controller, Get, Post, Delete, Body, Param, HttpCode, HttpStatus, Res, UseGuards, Request
 } from '@nestjs/common';
-import { Response } from 'express';
 import { ReportsService } from '../services/reports.service';
-import * as path from 'path';
-import * as fs from 'fs';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @Controller('reports')
+@UseGuards(JwtAuthGuard)
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async generateReport(@Body() createReportDto: any) {
-    // 确保调用 Service 中存在的方法名
-    return this.reportsService.generateReport(createReportDto);
+  async generateReport(@Body() createReportDto: any, @Request() req) {
+    return this.reportsService.generateReport(createReportDto, req.user.envScope);
+  }
+
+  @Post(':id/build')
+  @HttpCode(HttpStatus.OK)
+  async buildReport(@Param('id') id: string, @Request() req) {
+    return this.reportsService.buildReportFile(+id, req.user.envScope);
   }
 
   @Get()
-  @HttpCode(HttpStatus.OK)
-  async findAll() {
-    return this.reportsService.findAll();
+  async findAll(@Request() req) {
+    return this.reportsService.findAll(req.user.envScope);
   }
 
   @Get('stats/summary')
   @HttpCode(HttpStatus.OK)
-  async getReportStats() {
-    return this.reportsService.getStatsSummary();
+  async getReportStats(@Request() req) {
+    return this.reportsService.getStatsSummary(req.user.envScope);
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  async findOne(@Param('id') id: string) {
-    return this.reportsService.findOne(+id);
-  }
-
-  @Get(':id/download')
-  async downloadReport(@Param('id') id: string, @Res() res: Response): Promise<void> {
-    const report = await this.reportsService.findOne(+id);
-    
-    if (!report.filePath) {
-      res.status(HttpStatus.NOT_FOUND).send('Report file not generated yet');
-      return;
-    }
-    
-    const filePath = path.join(process.cwd(), 'uploads', 'reports', report.filePath);
-    
-    if (!fs.existsSync(filePath)) {
-      res.status(HttpStatus.NOT_FOUND).send('Physical file not found');
-      return;
-    }
-
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(report.title)}.xlsx"`);
-    
-    return res.sendFile(filePath);
+  async findOne(@Param('id') id: string, @Request() req) {
+    return this.reportsService.findOne(+id, req.user.envScope);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  async deleteReport(@Param('id') id: string) {
-    return this.reportsService.remove(+id);
+  async deleteReport(@Param('id') id: string, @Request() req) {
+    return this.reportsService.remove(+id, req.user.envScope);
   }
 }
