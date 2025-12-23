@@ -8,6 +8,13 @@ yarn-error.log*
 # Production builds
 dist/
 build/
+release/
+out/
+dist_electron/
+*.dmg
+*.pkg
+*.zip
+*.app
 .next/
 .nuxt/
 

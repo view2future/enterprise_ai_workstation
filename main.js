@@ -40,8 +40,12 @@ function startBackend() {
   console.log('🚀 正在启动联图智研后端引擎...');
   console.log(`Backend path: ${backendPath}`);
   
-  backendProcess = spawn('node', [backendPath], {
-    env: { ...process.env, DATABASE_URL: `file:${path.join(app.getPath('userData'), 'nexus_desktop.db')}` }
+  backendProcess = spawn(process.execPath, [backendPath], {
+    env: { 
+      ...process.env, 
+      ELECTRON_RUN_AS_NODE: '1',
+      DATABASE_URL: `file:${path.join(app.getPath('userData'), 'nexus_desktop.db')}` 
+    }
   });
 
   backendProcess.stdout.on('data', (data) => console.log(`[Backend]: ${data}`));
