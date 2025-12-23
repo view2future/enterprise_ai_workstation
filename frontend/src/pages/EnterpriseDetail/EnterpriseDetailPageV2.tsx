@@ -8,7 +8,7 @@ import {
   Link as LinkIcon, Cpu, Zap, Trophy, Award, 
   BarChart as BarChartIcon, Lock, Unlock, 
   Sparkles, Radar as RadarIcon, Fingerprint,
-  Activity, History, FileText
+  Activity, History, FileText, ShieldCheck, Copy
 } from 'lucide-react';
 import { NeubrutalCard, NeubrutalButton } from '../../components/ui/neubrutalism/NeubrutalComponents';
 import { 
@@ -16,17 +16,31 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip 
 } from 'recharts';
 
+import { VeracityHUD } from '../../components/veracity/VeracityHUD';
+import { Toast } from '../../components/common/Toast';
+import { soundEngine } from '../../utils/SoundUtility';
+
 const EnterpriseDetailPageV2: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const enterpriseId = Number(id);
   const [isDecrypting, setIsDecrypting] = useState(true);
+  const [isVeracityOpen, setIsVeracityOpen] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   const { data: enterprise, isLoading, error } = useQuery({
     queryKey: ['enterprise', enterpriseId],
     queryFn: () => enterpriseApi.getEnterprise(enterpriseId).then(res => res.data),
     enabled: !!id,
   });
+
+  const handleCopyName = () => {
+    if (enterprise?.enterpriseName) {
+      navigator.clipboard.writeText(enterprise.enterpriseName);
+      setShowToast(true);
+      soundEngine.playSuccess();
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && enterprise) {
@@ -67,6 +81,17 @@ const EnterpriseDetailPageV2: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50/50 pb-20">
+      <Toast 
+        show={showToast} 
+        message="企业名称已复制到剪切板" 
+        onClose={() => setShowToast(false)} 
+      />
+      <VeracityHUD 
+        isOpen={isVeracityOpen} 
+        onClose={() => setIsVeracityOpen(false)} 
+        enterpriseId={enterpriseId} 
+        enterpriseName={enterprise.enterpriseName} 
+      />
       <AnimatePresence>
         {isDecrypting && (
           <motion.div 
@@ -97,7 +122,14 @@ const EnterpriseDetailPageV2: React.FC = () => {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <span className="bg-red-600 text-white text-[8px] font-black px-2 py-0.5 uppercase tracking-tighter italic">机密级档案</span>
-              <h1 className="text-3xl font-black uppercase italic tracking-tighter text-gray-900">{enterprise.enterpriseName}</h1>
+              <h1 
+                className="text-3xl font-black uppercase italic tracking-tighter text-gray-900 cursor-pointer hover:text-blue-600 transition-colors flex items-center gap-3 group"
+                onClick={handleCopyName}
+                title="点击复制企业名称"
+              >
+                {enterprise.enterpriseName}
+                <Copy size={20} className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-600" />
+              </h1>
             </div>
             <div className="flex flex-wrap gap-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
               <span>系统编号: {enterprise.id}</span>
@@ -109,6 +141,12 @@ const EnterpriseDetailPageV2: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-3">
+          <button 
+            onClick={() => setIsVeracityOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 border-4 border-gray-900 bg-yellow-400 text-gray-900 font-black uppercase text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all"
+          >
+            <ShieldCheck size={16} /> 执行真值校准
+          </button>
           <NeubrutalButton variant="secondary" onClick={() => navigate(`/enterprises/${enterprise.id}/edit`)}>
             <Edit size={16} className="mr-2" /> 修改词条
           </NeubrutalButton>

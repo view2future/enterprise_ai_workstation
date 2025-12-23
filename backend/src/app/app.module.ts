@@ -9,6 +9,7 @@ import { DashboardModule } from '../modules/dashboard/dashboard.module';
 import { ReportsModule } from '../modules/reports/reports.module';
 import { UsersModule } from '../modules/users/users.module';
 import { SyncModule } from '../modules/sync/sync.module';
+import { VeracityModule } from '../modules/veracity/veracity.module';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
@@ -25,6 +26,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     ReportsModule,
     UsersModule,
     SyncModule,
+    VeracityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

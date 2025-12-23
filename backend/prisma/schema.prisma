@@ -5,8 +5,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./nexus_desktop.db"
 }
 
 model User {
@@ -22,6 +22,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   auditLogs AuditLog[]
+  veracityTasks VeracityTask[]
   
   @@map("users")
 }
@@ -40,7 +41,7 @@ model Enterprise {
   registeredCapital BigInt?  @map("注册资本")
   employeeCount     Int?     @map("参保人数")
   enterpriseBackground String? @map("企业背景")
-  industry          Json?    @map("行业")
+  industry          String?    @map("行业")
   taskDirection     String?  @map("任务方向")
   contactInfo       String?  @map("联系人信息")
   usageScenario     String?  @map("使用场景")
@@ -64,10 +65,10 @@ model Enterprise {
 
   // 百度AI技术应用
   paddleUsageLevel        String?   @map("飞桨应用深度")
-  paddleModels            Json?     @map("飞桨具体模型")
+  paddleModels            String?     @map("飞桨具体模型")
   paddleTrainingType      String?   @map("飞桨训练模式")
   ernieModelType          String?   @map("文心大模型版本")
-  ernieAppScenarios       Json?     @map("文心应用场景")
+  ernieAppScenarios       String?     @map("文心应用场景")
   promptTemplateCount     Int?      @default(0) @map("提示词模板数")
   avgMonthlyApiCalls      BigInt?   @default(0) @map("月均API调用量")
   peakApiCalls            Int?      @default(0) @map("峰值并发量")
@@ -76,12 +77,12 @@ model Enterprise {
 
   // 生态合作与活动
   partnerProgramType      String?   @map("生态项目类别")
-  baiduCertificates       Json?     @map("百度AI认证证书")
-  eventParticipation      Json?     @map("参与活动记录")
-  jointSolutions          Json?     @map("联合解决方案")
+  baiduCertificates       String?     @map("百度AI认证证书")
+  eventParticipation      String?     @map("参与活动记录")
+  jointSolutions          String?     @map("联合解决方案")
   isBaiduVenture          Boolean?  @default(false) @map("百度是否投资")
-  trainingRecord          Json?     @map("技术培训记录")
-  awardsReceived          Json?     @map("获奖记录")
+  trainingRecord          String?     @map("技术培训记录")
+  awardsReceived          String?     @map("获奖记录")
   lastContactDept         String?   @map("百度最近对接部门")
 
   // 数据灾备与审计
@@ -89,6 +90,12 @@ model Enterprise {
   lastAuditTime           DateTime? @map("最后审计时间")
   isArchived              Boolean   @default(false) @map("是否已归档")
   dataSourceType          String?   @default("manual") @map("数据来源")
+  
+  // VERACITY HUD 扩展字段
+  isVerified              Boolean   @default(false) @map("是否已真值校验")
+  veracityScore           Int       @default(0) @map("真值置信度")
+  lastVeracityCheck       DateTime? @map("最后校验时间")
+  evidenceChain           String?     @map("证据链数据")
   
   @@map("enterprises")
 }
@@ -101,12 +108,28 @@ model AuditLog {
   entityType  String   // Enterprise, Report
   entityId    Int?
   details     String?  // 操作描述
-  oldValue    Json?
-  newValue    Json?
+  oldValue    String?
+  newValue    String?
   timestamp   DateTime @default(now())
   ipAddress   String?
 
   @@map("audit_logs")
+}
+
+model VeracityTask {
+  id            String   @id @default(uuid())
+  targetName    String
+  status        String   @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
+  progress      Int      @default(0)
+  step          String?
+  resultData    String?
+  envScope      String   @default("PROD")
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("veracity_tasks")
 }
 
 model Report {
@@ -116,8 +139,8 @@ model Report {
   format         String
   status         String    @default("pending")
   description    String?
-  filters        Json?
-  configuration  Json?
+  filters        String?
+  configuration  String?
   filePath       String?
   fileName       String?
   dataCount      Int       @default(0)

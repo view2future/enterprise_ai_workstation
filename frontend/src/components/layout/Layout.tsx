@@ -20,14 +20,18 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
-  Map
+  Map,
+  ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { enterpriseApi } from '../../services/enterprise.service';
 import { CommandPalette } from '../CommandPalette';
 import { OperationalLiveFeed } from './OperationalLiveFeed';
 import { CinematicOverlay } from '../CinematicOverlay';
+import { VeracityHUD } from '../veracity/VeracityHUD';
+import { TaskMonitor } from '../veracity/TaskMonitor';
 import { NexusLogo } from '../ui/neubrutalism/NexusLogo';
+import { QuickEntryModal } from '../QuickEntryModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -40,7 +44,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isGlitching, setIsGlitching] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(new Date());
   const [totalEnterprises, setTotalEnterprises] = React.useState<number | null>(null);
+  const [isQuickEntryOpen, setIsQuickEntryOpen] = React.useState(false);
   
+  // VERACITY HUD 状态
+  const [isVeracityOpen, setIsVeracityOpen] = React.useState(false);
+
   // 侧边栏折叠状态，从 localStorage 读取初始值
   const [isCollapsed, setIsCollapsed] = React.useState(() => {
     const saved = localStorage.getItem('sidebar_collapsed');
@@ -65,6 +73,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }).catch(err => console.error('Failed to fetch stats', err));
   }, [location.pathname]); // 路由切换时尝试刷新（数据可能变了）
 
+  // 监听快捷键 Cmd+I
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
+        e.preventDefault();
+        setIsQuickEntryOpen(prev => !prev);
+        soundEngine.playPneumatic();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // 监听路由变化触发 Glitch 转场 (Scheme 7)
   React.useEffect(() => {
     setIsGlitching(true);
@@ -76,6 +97,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: '/dashboard', label: '仪表板', icon: LayoutDashboard },
     { path: '/dashboard/war-map', label: '战术地图', icon: Map },
     { path: '/enterprises', label: '企业管理', icon: Building2 },
+    // { path: '#veracity', label: '真值控制台', icon: ShieldCheck, onClick: () => setIsVeracityOpen(true) },
     { path: '/import-export', label: '导入导出', icon: FileOutput },
     { path: '/reports', label: '报告', icon: BarChart3 },
     { path: '/settings', label: '设置', icon: Settings },
@@ -89,6 +111,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <HUDNotes />
       <CommandPalette />
       <CinematicOverlay />
+      <QuickEntryModal 
+        isOpen={isQuickEntryOpen} 
+        onClose={() => setIsQuickEntryOpen(false)} 
+        onSuccess={() => {
+          // 刷新数据（如果有需要的话，通过 queryClient）
+        }}
+      />
+      <TaskMonitor />
+      
+      {/* <VeracityHUD 
+        isOpen={isVeracityOpen} 
+        onClose={() => setIsVeracityOpen(false)} 
+        enterpriseId={0} 
+        enterpriseName="全域资产库" 
+      /> */}
       
       {/* 侧边栏 */}
       <motion.div 
@@ -130,7 +167,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <li key={item.path}>
                   <Link
                     to={item.path}
-                    onClick={() => soundEngine.playTick()}
+                    onClick={(e) => { 
+                      soundEngine.playTick(); 
+                      if (item.onClick) {
+                        e.preventDefault();
+                        item.onClick();
+                      }
+                    }}
                     title={isCollapsed ? item.label : ""}
                     className={`flex items-center gap-3 px-4 py-3 border-2 transition-all active-gravity group ${
                       isActive(item.path)

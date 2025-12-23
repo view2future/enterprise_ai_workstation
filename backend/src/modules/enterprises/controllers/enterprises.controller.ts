@@ -36,6 +36,12 @@ export class EnterprisesController {
     return this.enterprisesService.findOne(+id, req.user.envScope);
   }
 
+  @Post('action/parse-unstructured')
+  @HttpCode(HttpStatus.OK)
+  async parseText(@Body('text') text: string) {
+    return this.enterprisesService.parseUnstructured(text);
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createDto: CreateEnterpriseDto, @Request() req) {

@@ -19,20 +19,32 @@ import {
   Zap,
   Trophy,
   Award,
-  BarChart as BarChartIcon
+  BarChart as BarChartIcon,
+  Copy
 } from 'lucide-react';
 import { NeubrutalCard, NeubrutalButton } from '../../components/ui/neubrutalism/NeubrutalComponents';
+import { Toast } from '../../components/common/Toast';
+import { soundEngine } from '../../utils/SoundUtility';
 
 const EnterpriseDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const enterpriseId = Number(id);
+  const [showToast, setShowToast] = React.useState(false);
 
   const { data: enterprise, isLoading, error } = useQuery({
     queryKey: ['enterprise', enterpriseId],
     queryFn: () => enterpriseApi.getEnterprise(enterpriseId).then(res => res.data),
     enabled: !!id,
   });
+
+  const handleCopyName = () => {
+    if (enterprise?.enterpriseName) {
+      navigator.clipboard.writeText(enterprise.enterpriseName);
+      setShowToast(true);
+      soundEngine.playSuccess();
+    }
+  };
 
   if (isLoading) {
     return (
@@ -52,10 +64,22 @@ const EnterpriseDetailPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <Toast 
+        show={showToast} 
+        message="企业名称已复制到剪切板" 
+        onClose={() => setShowToast(false)} 
+      />
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-extrabold text-gray-900">{enterprise.enterpriseName}</h1>
+            <h1 
+              className="text-3xl font-extrabold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors flex items-center gap-2 group"
+              onClick={handleCopyName}
+              title="点击复制企业名称"
+            >
+              {enterprise.enterpriseName}
+              <Copy size={18} className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-600" />
+            </h1>
             {enterprise.isHighTech && (
               <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 border-2 border-blue-800 font-bold rounded">高新企业</span>
             )}

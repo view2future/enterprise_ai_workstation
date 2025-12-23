@@ -212,7 +212,7 @@ const DashboardPage: React.FC = () => {
         <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
           <NeubrutalCard className="bg-white border-blue-600 border-b-8">
             <p className="text-xs font-black text-gray-500 uppercase flex justify-between">企业数据总量 <Database size={14} /></p>
-            <p className="text-5xl font-black mt-2 italic italic">
+            <p className="text-5xl font-black mt-2 italic">
               <NumberCounter value={stats?.totalEnterprises || 0} />
             </p>
             <p className="text-[10px] font-bold text-blue-600 mt-4 flex items-center gap-1 cursor-pointer hover:underline" onClick={() => navigate('/enterprises')}>
@@ -242,13 +242,14 @@ const DashboardPage: React.FC = () => {
           </NeubrutalCard>
         </div>
 
+        {/* V2.0 STRATEGIC RADAR */}
         <NeubrutalCard className="bg-white border-8 border-gray-900 !p-6 shadow-[15px_15px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
            <div className="flex items-center justify-between mb-4">
               <h3 className="font-black uppercase flex items-center gap-2 text-sm tracking-widest italic"><RadarIcon size={18} className="text-blue-600" /> 产业能级雷达</h3>
               <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
            </div>
            <div className="h-[240px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={240}>
                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                     <PolarGrid stroke="#e5e7eb" strokeWidth={2} />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: '#374151', fontSize: 10, fontWeight: '900' }} />
@@ -275,7 +276,7 @@ const DashboardPage: React.FC = () => {
         <NeubrutalCard>
           <h2 className="text-xl font-black mb-6 flex items-center gap-2 border-b-4 border-gray-100 pb-2"><Globe className="text-green-600" /> 企业区域势力分布</h2>
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={320}>
               <BarChart data={stats?.regionStats}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontWeight: 'black' }} />
@@ -303,7 +304,7 @@ const DashboardPage: React.FC = () => {
         <NeubrutalCard>
           <h2 className="text-xl font-black mb-6 flex items-center gap-2 border-b-4 border-gray-100 pb-2"><Zap className="text-yellow-500 fill-yellow-500" /> 技术生态占比</h2>
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={320}>
               <PieChart>
                 <Pie 
                   data={chartData?.techDistribution} 
@@ -333,7 +334,7 @@ const DashboardPage: React.FC = () => {
         <NeubrutalCard>
           <h2 className="text-xl font-black mb-6 flex items-center gap-2 border-b-4 border-gray-100 pb-2"><Trophy className="text-orange-600" /> 合作伙伴能级分布</h2>
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={320}>
               <PieChart>
                 <Pie 
                   data={stats?.partnerLevelStats} 
@@ -359,7 +360,7 @@ const DashboardPage: React.FC = () => {
         <NeubrutalCard>
           <h2 className="text-xl font-black mb-6 flex items-center gap-2 border-b-4 border-gray-100 pb-2"><Star className="text-red-600 fill-red-600" /> 企业价值优先级构成</h2>
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={320}>
               <BarChart data={stats?.priorityStats} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                 <XAxis type="number" hide />
@@ -390,7 +391,7 @@ const DashboardPage: React.FC = () => {
           <TrendingUp className="text-blue-600" /> 产业月度增长趋势线
         </h2>
         <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minHeight={288}>
             <LineChart data={chartData?.monthlyTrendData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="month" tick={{ fontWeight: 'bold' }} />

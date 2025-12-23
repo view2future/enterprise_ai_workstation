@@ -20,11 +20,20 @@ export class ReportsService {
     });
   }
 
-  async findOne(id: number, userEnv: string) {
+  async findOne(id: number, userEnv: string = 'PROD') {
     const report = await this.prisma.report.findFirst({
       where: { id, envScope: userEnv },
     });
-    if (!report) throw new NotFoundException('报告不存在');
+    if (!report) throw new NotFoundException('报告未能在当前环境解密或不存在');
+    
+    // 适配 SQLite
+    if (typeof report.filters === 'string') {
+      try { report.filters = JSON.parse(report.filters); } catch(e) {}
+    }
+    if (typeof report.configuration === 'string') {
+      try { report.configuration = JSON.parse(report.configuration); } catch(e) {}
+    }
+
     return report;
   }
 

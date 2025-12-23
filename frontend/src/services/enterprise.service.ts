@@ -119,5 +119,10 @@ export const enterpriseApi = {
   // 获取全量地图数据 (V2.0 - Final Stability)
   getMapData: () => {
     return apiClient.get<PaginatedResponse<Enterprise>>('/enterprises/action/map-data-full');
+  },
+
+  // 智研闪录：解析文本
+  quickParse: (text: string) => {
+    return apiClient.post('/enterprises/action/parse-unstructured', { text });
   }
 };

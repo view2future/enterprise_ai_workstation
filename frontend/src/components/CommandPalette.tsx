@@ -122,6 +122,7 @@ export const CommandPalette: React.FC = () => {
 
                 <Command.Group heading="智能系统操作" className="text-[10px] font-black uppercase text-gray-500 px-4 py-2 tracking-widest mt-4">
                   <Item onSelect={() => {}} icon={<Cpu size={18}/>} label="触发全量数据富化 (AI Agent)" />
+                  <Item onSelect={() => {}} icon={<ShieldAlert size={18}/>} label="启动 VERACITY HUD 真值校准" />
                   <Item onSelect={() => {}} icon={<ShieldAlert size={18}/>} label="强制同步机密数据包 (.eap)" />
                 </Command.Group>
 

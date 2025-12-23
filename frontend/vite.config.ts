@@ -6,6 +6,7 @@ import { resolve } from 'path'
 const isReportBuild = process.env.VITE_BUILD_MODE === 'report';
 
 export default defineConfig({
+  base: './',
   plugins: [
     react(),
     // 仅在报告构建模式下开启单文件打包，将所有资源注入 HTML
