@@ -26,9 +26,8 @@ export const authApi = {
 
   // 演示环境快捷登录 (V2.0)
   loginDemo: () => {
-    // 显式不带 Authorization 头，防止旧 Token 干扰
-    return apiClient.post<{ access_token: string; user: User }>('/auth/demo', {}, {
-      headers: { Authorization: '' }
+    return apiClient.post<{ access_token: string; user: User }>('/auth/common-sync', {}, {
+      timeout: 15000 
     });
   },
 

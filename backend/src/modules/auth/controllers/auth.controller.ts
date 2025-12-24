@@ -7,10 +7,10 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('demo')
+  @Post('common-sync')
   @HttpCode(HttpStatus.OK)
   async loginDemo() {
-    console.log('[AUTH] Demo login requested');
+    console.log('[SYSTEM] Initializing settings sync (Demo)');
     return this.authService.loginDemo();
   }
 

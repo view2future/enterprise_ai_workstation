@@ -84,6 +84,11 @@ const WarMapPage: React.FC = () => {
     // 确保 DOM 容器存在后再加载
     if (!containerRef.current) return;
 
+    // 高德地图 2.0 安全密钥配置
+    (window as any)._AMapSecurityConfig = {
+      securityJsCode: import.meta.env.VITE_AMAP_SECURITY_KEY, 
+    };
+
     AMapLoader.load({
       key: import.meta.env.VITE_AMAP_KEY,
       version: '2.0',
