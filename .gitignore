@@ -11,6 +11,14 @@ build/
 release/
 out/
 dist_electron/
+android/
+*.apk
+*.aar
+*.jks
+*.keystore
+.gradle/
+build/
+captacitor.config.ts.old
 *.dmg
 *.pkg
 *.zip

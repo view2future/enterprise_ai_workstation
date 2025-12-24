@@ -1,6 +1,6 @@
 {
   "name": "nexus-workstation",
-  "version": "3.5.0",
+  "version": "0.1.0",
   "description": "联图/Nexus - 西南AI产业生态智研决策平台",
   "main": "main.js",
   "author": "Lantú Intelligence",
@@ -14,7 +14,8 @@
           "target": "dmg",
           "arch": "arm64"
         }
-      ]
+      ],
+      "icon": "assets/icon.png"
     },
     "directories": {
       "output": "dist_electron"

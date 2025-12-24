@@ -1,0 +1,13 @@
+{
+  "appId": "com.nexus.workstation",
+  "appName": "联图Nexus",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "cleartext": true,
+    "allowNavigation": ["*"]
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
