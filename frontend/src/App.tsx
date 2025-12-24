@@ -8,7 +8,7 @@ import DashboardPage from './pages/Dashboard/DashboardPage';
 import WarMapPage from './pages/Dashboard/WarMapPage';
 import TechRadarPage from './pages/Dashboard/TechRadarPage';
 import EcosystemPage from './pages/Dashboard/EcosystemPage';
-import WarRoomPage from './pages/Dashboard/WarRoomPage';
+import PolicyWarRoomPage from './pages/Dashboard/PolicyWarRoomPage';
 import EnterprisesPage from './pages/Enterprises/EnterprisesPage';
 import EnterpriseDetailPageV2 from './pages/EnterpriseDetail/EnterpriseDetailPageV2';
 import EnterpriseFormPage from './pages/Enterprises/EnterpriseFormPage';
@@ -27,7 +27,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   // 如果用户已登录，直接访问主页
   if (isAuthenticated && token) {
     // 如果当前在登录页，重定向到仪表板
-    if (location.pathname === '/login' || location.pathname === '/landing') {
+    if (location.pathname === '/login') {
       return <Navigate to="/dashboard" replace />;
     }
     return <>{children}</>;
@@ -48,7 +48,7 @@ const UnprotectedRoute: React.FC<{ children: React.ReactNode }> = ({ children })
   const location = useLocation();
 
   // 如果已登录，重定向到仪表板
-  if (isAuthenticated && (location.pathname === '/login' || location.pathname === '/landing')) {
+  if (isAuthenticated && location.pathname === '/login') {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -68,12 +68,12 @@ const MainApp: React.FC = () => {
   return (
     <Routes>
       <Route 
+        path="/" 
+        element={<LandingPage />} 
+      />
+      <Route 
         path="/landing" 
-        element={
-          <UnprotectedRoute>
-            <LandingPage />
-          </UnprotectedRoute>
-        } 
+        element={<Navigate to="/" replace />} 
       />
       <Route 
         path="/login" 
@@ -129,6 +129,16 @@ const MainApp: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <WarMapPage />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/policy-war-room" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <PolicyWarRoomPage />
             </Layout>
           </ProtectedRoute>
         } 

@@ -1,7 +1,8 @@
 // prisma/schema.prisma
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "darwin-arm64"]
 }
 
 datasource db {
@@ -10,20 +11,21 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  email     String   @unique
-  password  String
-  firstName String?
-  lastName  String?
-  role      String   @default("analyst")
-  status    String   @default("active")
-  envScope  String   @default("PROD") // 区分环境：DEMO 或 PROD
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  auditLogs AuditLog[]
+  id            Int            @id @default(autoincrement())
+  username      String         @unique
+  email         String         @unique
+  password      String
+  firstName     String?
+  lastName      String?
+  role          String         @default("analyst") // admin, manager, analyst
+  department    String         @default("SW_REGION") // 所属部门，用于同级审计隔离
+  status        String         @default("active")
+  envScope      String         @default("PROD")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  auditLogs     AuditLog[]
   veracityTasks VeracityTask[]
-  
+
   @@map("users")
 }
 
@@ -32,9 +34,32 @@ model Enterprise {
   enterpriseName    String   @unique @map("企业名称")
   envScope          String   @default("PROD") @map("环境域")
   feijiangWenxin    String?  @map("飞桨_文心")
+  
+  // V4.0 线索漏斗增强
+  clueStage         String   @default("LEAD") @map("线索阶段") // LEAD, EMPOWERING, ADOPTED, ECO_PRODUCT, POWERED_BY, CASE_STUDY
+  clueSource        String?  @map("线索来源") // PHONE, EVENT, ASSOCIATION, PARTNER, GOV
+  clueSourceDetail  String?  @map("来源详情") // 记录活动名称、介绍人姓名等
   clueInTime        String?  @map("线索入库时间")
   clueUpdateTime    DateTime? @map("线索更新时间")
+  
+  // V4.0 品牌授权 (Powered By)
+  isPoweredBy       Boolean  @default(false) @map("是否品牌授权")
+  pbAuthInfo        String?  @map("PB授权详情") // 存储授权产品范围、级别
+  
+  // V4.0 授牌与资质管理
   partnerLevel      String?  @map("伙伴等级")
+  awardStatus       String?  @default("未授牌") @map("授牌状态") // 已授牌 / 未授牌
+  awardTime         DateTime? @map("授牌时间")
+  awardLocation     String?  @map("授牌地点")
+  certExpiryDate    DateTime? @map("证书有效期至") // 核心：用于提前3个月预警
+  
+  // V4.0 物流与履约管控
+  shippingStatus    String?  @default("PENDING") @map("寄送状态") // PENDING, SHIPPED, RECEIVED
+  trackingNumber    String?  @map("快递单号")
+  logisticsNotes    String?  @map("物流备注")
+  receiptStatus     String?  @default("NOT_RECEIVED") @map("查收状态")
+  lastRenewalDate   DateTime? @map("最近更新日期")
+
   ecoAIProducts     String?  @map("生态AI产品")
   priority          String?  @map("优先级")
   base              String?  @map("base")
@@ -51,7 +76,7 @@ model Enterprise {
   createdBy         String?
   updatedBy         String?
 
-  // 企业自身信息完善
+  // 企业画像补充
   unifiedSocialCreditCode String?   @map("统一社会信用代码")
   legalRepresentative     String?   @map("法定代表人")
   establishmentDate       DateTime? @map("成立日期")
@@ -63,7 +88,7 @@ model Enterprise {
   website                 String?   @map("公司官网")
   officeAddress           String?   @map("详细办公地址")
 
-  // 百度AI技术应用
+  // 技术矩阵
   paddleUsageLevel        String?   @map("飞桨应用深度")
   paddleModels            String?     @map("飞桨具体模型")
   paddleTrainingType      String?   @map("飞桨训练模式")
@@ -75,8 +100,7 @@ model Enterprise {
   inferenceComputeType    String?   @map("推理算力类型")
   aiImplementationStage   String?   @map("AI落地阶段")
 
-  // 生态合作与活动
-  partnerProgramType      String?   @map("生态项目类别")
+  // 更多合作细节
   baiduCertificates       String?     @map("百度AI认证证书")
   eventParticipation      String?     @map("参与活动记录")
   jointSolutions          String?     @map("联合解决方案")
@@ -85,13 +109,13 @@ model Enterprise {
   awardsReceived          String?     @map("获奖记录")
   lastContactDept         String?   @map("百度最近对接部门")
 
-  // 数据灾备与审计
+  // 数据审计
   dataIntegrityHash       String?   @map("数据完整性哈希")
   lastAuditTime           DateTime? @map("最后审计时间")
   isArchived              Boolean   @default(false) @map("是否已归档")
   dataSourceType          String?   @default("manual") @map("数据来源")
   
-  // VERACITY HUD 扩展字段
+  // 真值校验
   isVerified              Boolean   @default(false) @map("是否已真值校验")
   veracityScore           Int       @default(0) @map("真值置信度")
   lastVeracityCheck       DateTime? @map("最后校验时间")
@@ -100,12 +124,32 @@ model Enterprise {
   @@map("enterprises")
 }
 
+model Policy {
+  id                Int       @id @default(autoincrement())
+  title             String    @map("政策标题")
+  officialId        String?   @unique @map("发文号")
+  category          String?   @map("政策类别") // 资金类, 资质类, 资源类
+  sourceUrl         String?   @map("原文链接")
+  content           String?   @map("政策原文")
+  analysis          String?   @map("AI结构化解析") // 存储脑图 JSON
+  supportIntensity  String?   @map("扶持力度")
+  applyStartDate    DateTime? @map("申报开始时间")
+  applyEndDate      DateTime? @map("申报截止时间")
+  targetIndustries  String?   @map("面向行业")
+  status            String    @default("active")
+  envScope          String    @default("PROD") @map("环境域")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("policies")
+}
+
 model AuditLog {
   id          Int      @id @default(autoincrement())
   userId      Int
   user        User     @relation(fields: [userId], references: [id])
   action      String   // CREATE, UPDATE, DELETE, SYNC_IMPORT
-  entityType  String   // Enterprise, Report
+  entityType  String   // Enterprise, Report, Policy
   entityId    Int?
   details     String?  // 操作描述
   oldValue    String?
@@ -119,7 +163,7 @@ model AuditLog {
 model VeracityTask {
   id            String   @id @default(uuid())
   targetName    String
-  status        String   @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
+  status        String   @default("PENDING") 
   progress      Int      @default(0)
   step          String?
   resultData    String?
@@ -145,6 +189,7 @@ model Report {
   fileName       String?
   dataCount      Int       @default(0)
   progress       Int       @default(0)
+  password       String?   // V4.0 新增：用于加密报告访问
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   completedAt    DateTime?

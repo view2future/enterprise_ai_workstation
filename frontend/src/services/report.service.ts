@@ -22,6 +22,7 @@ export interface Report {
   description?: string;
   filters?: any;
   filePath?: string;
+  password?: string;
   createdAt: string;
   updatedAt: string;
   envScope: string;

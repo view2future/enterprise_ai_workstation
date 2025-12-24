@@ -81,6 +81,11 @@ class SoundEngine {
     osc.start();
     osc.stop(this.ctx.currentTime + 0.2);
   }
+
+  // 启动音效
+  public playLaunch() {
+    this.playSuccess();
+  }
 }
 
 export const soundEngine = new SoundEngine();

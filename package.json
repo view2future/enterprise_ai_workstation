@@ -22,22 +22,43 @@
     },
     "files": [
       "main.js",
-      "frontend/dist/**/*",
-      "backend/dist/**/*",
-      "backend/node_modules/**/*",
-      "backend/prisma/nexus_desktop.db"
+      "frontend/dist/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "assets",
+        "to": "assets",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "backend/dist",
+        "to": "backend/dist",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "backend/node_modules",
+        "to": "backend/node_modules",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "backend/prisma/nexus_desktop.db",
+        "to": "backend/prisma/nexus_desktop.db"
+      }
     ],
     "asar": true,
-    "asarUnpack": [
-      "backend/dist/**/*",
-      "backend/node_modules/**/*"
-    ]
+    "asarUnpack": []
   },
   "scripts": {
     "start": "electron .",
     "build:frontend": "cd frontend && npm install && npm run build",
     "build:backend": "cd backend && npm install && npm run build",
-    "prep:sqlite": "node scripts/switch-db.js sqlite && cd backend && npx prisma db push --accept-data-loss && npx ts-node master_seed.ts",
+    "prep:sqlite": "node scripts/switch-db.js sqlite && cd backend && npx prisma db push --accept-data-loss && npx ts-node master_seed.ts && npx ts-node real_data_sync.ts && npx ts-node update_demo_data_v5.ts",
     "build:dmg": "npm run build:frontend && npm run build:backend && npm run prep:sqlite && electron-builder build --mac --arm64"
   },
   "devDependencies": {

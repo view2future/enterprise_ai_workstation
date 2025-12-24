@@ -21,7 +21,9 @@ import {
   ChevronRight,
   Zap,
   Map,
-  ShieldCheck
+  ShieldCheck,
+  Swords,
+  Globe
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { enterpriseApi } from '../../services/enterprise.service';
@@ -31,7 +33,7 @@ import { CinematicOverlay } from '../CinematicOverlay';
 import { VeracityHUD } from '../veracity/VeracityHUD';
 import { TaskMonitor } from '../veracity/TaskMonitor';
 import { NexusLogo } from '../ui/neubrutalism/NexusLogo';
-import { QuickEntryModal } from '../QuickEntryModal';
+import QuickIngestModal from '../enterprises/QuickIngestModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -44,7 +46,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isGlitching, setIsGlitching] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(new Date());
   const [totalEnterprises, setTotalEnterprises] = React.useState<number | null>(null);
-  const [isQuickEntryOpen, setIsQuickEntryOpen] = React.useState(false);
   
   // VERACITY HUD 状态
   const [isVeracityOpen, setIsVeracityOpen] = React.useState(false);
@@ -78,7 +79,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
         e.preventDefault();
-        setIsQuickEntryOpen(prev => !prev);
+        (window as any).showQuickIngest?.();
         soundEngine.playPneumatic();
       }
     };
@@ -96,6 +97,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navItems: { path: string; label: string; icon: any; onClick?: () => void }[] = [
     { path: '/dashboard', label: '仪表板', icon: LayoutDashboard },
     { path: '/dashboard/war-map', label: '战术地图', icon: Map },
+    { path: '/dashboard/policy-war-room', label: '政策指挥室', icon: ShieldCheck },
     { path: '/enterprises', label: '企业管理', icon: Building2 },
     { path: '/import-export', label: '导入导出', icon: FileOutput },
     { path: '/reports', label: '报告', icon: BarChart3 },
@@ -110,13 +112,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <HUDNotes />
       <CommandPalette />
       <CinematicOverlay />
-      <QuickEntryModal 
-        isOpen={isQuickEntryOpen} 
-        onClose={() => setIsQuickEntryOpen(false)} 
-        onSuccess={() => {
-          // 刷新数据（如果有需要的话，通过 queryClient）
-        }}
-      />
+      <QuickIngestModal />
       <TaskMonitor />
       
       {/* <VeracityHUD 
@@ -157,7 +153,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             )}
           </AnimatePresence>
         </div>
-        
+
         <nav className="flex-1 p-2 overflow-y-auto overflow-x-hidden">
           <ul className="space-y-2">
             {navItems.map((item) => {
@@ -244,6 +240,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* 官网快捷入口 */}
+            <Link 
+              to="/landing" 
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 border-2 border-gray-900 bg-white hover:bg-yellow-400 transition-colors mr-2 shadow-[2px_2px_0_0_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+              title="访问产品官网"
+            >
+              <Globe size={14} className="text-gray-900" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Landing</span>
+            </Link>
+
             {/* V2.0 BADGE */}
             <div className="hidden xl:flex mr-6 px-3 py-1 bg-gray-900 border-2 border-blue-500 rounded-full items-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.3)] animate-pulse cursor-help group relative" title="按 Cmd+K 开启指令中心">
                <Zap size={12} className="text-blue-400 fill-blue-400" />

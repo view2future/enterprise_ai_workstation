@@ -1,35 +1,55 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { CreateEnterpriseDto, UpdateEnterpriseDto, EnterpriseFilterDto } from '../dto/enterprise.dto';
+import { CreateEnterpriseDto, UpdateEnterpriseDto, EnterpriseFilterDto, ClueStage } from '../dto/enterprise.dto';
+import { NlpParserService } from './nlp-parser.service';
 
 @Injectable()
 export class EnterprisesService {
   private readonly logger = new Logger(EnterprisesService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private nlpService: NlpParserService
+  ) {}
 
   async findAll(filters: EnterpriseFilterDto = {}, userEnvScope: string) {
-    const { search, base, priority, feijiangWenxin, page = 0, limit = 50 } = filters;
+    const { keyword, base, clueStage, partnerLevel, expiry, page = 0, limit = 50 } = filters as any;
     
     const whereClause: any = { 
       status: 'active', 
       envScope: userEnvScope 
     };
 
-    if (search) whereClause.enterpriseName = { contains: search, mode: 'insensitive' };
+    if (keyword) {
+      whereClause.OR = [
+        { enterpriseName: { contains: keyword } },
+        { enterpriseBackground: { contains: keyword } }
+      ];
+    }
     if (base) whereClause.base = base;
-    if (priority) whereClause.priority = priority;
-    if (feijiangWenxin) whereClause.feijiangWenxin = feijiangWenxin;
+    if (clueStage) whereClause.clueStage = clueStage;
+    if (partnerLevel) whereClause.partnerLevel = partnerLevel;
+
+    // V4.0 效期预警过滤与排序
+    let orderBy: any = { updatedAt: 'desc' };
+    if (expiry === 'soon') {
+      whereClause.certExpiryDate = {
+        lte: new Date(new Date().getTime() + 90 * 24 * 60 * 60 * 1000),
+        gte: new Date()
+      };
+      orderBy = { certExpiryDate: 'asc' }; // 越接近当前时间越靠前
+    }
 
     const total = await this.prisma.enterprise.count({ where: whereClause });
     const items = await this.prisma.enterprise.findMany({
       where: whereClause,
       skip: page * limit,
       take: limit,
-      orderBy: { updatedAt: 'desc' }
+      orderBy: orderBy
     });
 
-    const jsonFields = ['industry', 'paddleModels', 'ernieAppScenarios', 'baiduCertificates', 'eventParticipation', 'jointSolutions', 'trainingRecord', 'awardsReceived', 'evidenceChain'];
+    // 适配 SQLite JSON 解析
+    const jsonFields = ['industry', 'paddleModels', 'baiduCertificates', 'eventParticipation', 'jointSolutions'];
     const parsedItems = items.map(item => {
       jsonFields.forEach(field => {
         if (typeof item[field] === 'string') {
@@ -48,8 +68,7 @@ export class EnterprisesService {
     });
     if (!ent) throw new NotFoundException(`资产 #${id} 在 ${userEnvScope} 环境中不存在`);
     
-    // 适配 SQLite: 将字符串化的 JSON 字段解析回对象
-    const jsonFields = ['industry', 'paddleModels', 'ernieAppScenarios', 'baiduCertificates', 'eventParticipation', 'jointSolutions', 'trainingRecord', 'awardsReceived', 'evidenceChain'];
+    const jsonFields = ['industry', 'paddleModels', 'baiduCertificates', 'eventParticipation', 'jointSolutions'];
     jsonFields.forEach(field => {
       if (typeof ent[field] === 'string') {
         try { ent[field] = JSON.parse(ent[field]); } catch (e) {}
@@ -62,59 +81,18 @@ export class EnterprisesService {
   async create(dto: CreateEnterpriseDto, userEnvScope: string) {
     return this.prisma.enterprise.create({
       data: {
-        enterpriseName: dto.企业名称,
+        ...dto,
         envScope: userEnvScope,
-        base: dto.base || '成都',
-        priority: dto.优先级 || 'P2',
-        feijiangWenxin: dto.飞桨_文心,
-        taskDirection: dto.任务方向,
-        contactInfo: dto.联系人信息,
-        status: 'active',
-        dataSourceType: 'quick_entry'
-      }
+        status: 'active'
+      } as any
     });
-  }
-
-  /**
-   * 智研解析引擎：从非结构化文本提取字段 (NLP Extraction)
-   */
-  async parseUnstructured(text: string) {
-    const result = {
-      enterpriseName: '',
-      feijiangWenxin: '',
-      taskDirection: '',
-      contactInfo: '',
-      priority: 'P2'
-    };
-
-    // 1. 提取企业名称
-    const nameMatch = text.match(/([^\s,，。:：]+(?:科技|智能|有限公司|有限责任公司|研发中心))/);
-    if (nameMatch) result.enterpriseName = nameMatch[1];
-
-    // 2. 识别技术栈
-    if (text.includes('飞桨') || text.includes('Paddle')) result.feijiangWenxin = '飞桨';
-    if (text.includes('文心') || text.includes('ERNIE')) result.feijiangWenxin = '文心';
-
-    // 3. 识别优先级
-    if (text.includes('核心') || text.includes('重点') || text.includes('P0')) result.priority = 'P0';
-    else if (text.includes('重要') || text.includes('跟进') || text.includes('P1')) result.priority = 'P1';
-
-    // 4. 提取联系人 (匹配 11位手机号)
-    const phoneMatch = text.match(/(?:联系人|人|经理)?[:：\s]?([^\s,，。]+)?\s?(1[3-9]\d{9})/);
-    if (phoneMatch) result.contactInfo = `${phoneMatch[1] || ''} ${phoneMatch[2]}`.trim();
-
-    // 5. 提取业务方向
-    const directionMatch = text.match(/(?:做|测试|应用|落地|场景)[:：\s]?([^\s,，。]+)/);
-    if (directionMatch) result.taskDirection = directionMatch[1];
-
-    return result;
   }
 
   async update(id: number, dto: UpdateEnterpriseDto, userEnvScope: string) {
     const ent = await this.findOne(id, userEnvScope);
     return this.prisma.enterprise.update({
       where: { id: ent.id },
-      data: { ...dto, updatedAt: new Date() }
+      data: { ...dto, updatedAt: new Date() } as any
     });
   }
 
@@ -126,14 +104,37 @@ export class EnterprisesService {
     });
   }
 
+  /**
+   * V4.0 智研极速入库引擎：本地 NLP 提取
+   */
+  async parseUnstructured(text: string) {
+    return this.nlpService.parseFollowUpText(text);
+  }
+
   async getStatistics(userEnvScope: string) {
     const where = { status: 'active', envScope: userEnvScope };
-    const [total, p0, feijiang, wenxin] = await Promise.all([
+    
+    // V4.0 线索漏斗统计
+    const [total, p0, clueStats, expiryWarnings] = await Promise.all([
       this.prisma.enterprise.count({ where }),
       this.prisma.enterprise.count({ where: { ...where, priority: 'P0' } }),
-      this.prisma.enterprise.count({ where: { ...where, feijiangWenxin: '飞桨' } }),
-      this.prisma.enterprise.count({ where: { ...where, feijiangWenxin: '文心' } }),
+      this.prisma.enterprise.groupBy({
+        by: ['clueStage'],
+        where,
+        _count: { _all: true }
+      }),
+      // 证书效期预警 (3个月内)
+      this.prisma.enterprise.count({
+        where: {
+          ...where,
+          certExpiryDate: {
+            lte: new Date(new Date().getTime() + 90 * 24 * 60 * 60 * 1000),
+            gte: new Date()
+          }
+        }
+      })
     ]);
-    return { total, p0, feijiang, wenxin };
+
+    return { total, p0, clueStats, expiryWarnings };
   }
 }

@@ -1,4 +1,3 @@
-
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -8,7 +7,7 @@ const cityData = [
     city: '成都',
     count: 300,
     names: [
-      '成都极米科技', '成都积微物联', '四川科伦药业', '成都索贝数码', '四川长虹电子', 
+      '成都极米科技', '成都积微物联', '四川科伦药业', '成都索贝数码', '四川长虹电子',
       '成都数聚股份', '成都医云科技', '成都拟合率科技', '成都精灵云科技', '成都西加云杉',
       '成都华气厚普', '成都纵横自动化', '成都国星宇航', '成都飞英思特', '成都超有爱科技',
       '成都谛听科技', '成都锐成芯微', '成都考拉悠然', '成都四方伟业', '成都商汤科技',
@@ -16,7 +15,6 @@ const cityData = [
       '成都爱乐达', '成都航天模塑', '成都成飞', '成都秦川物联', '成都盟升电子',
       '成都智明达', '成都苑东生物', '成都极客数学帮', '成都宜修科技', '成都任我行',
       '成都千嘉科技', '成都卫士通', '成都运达科技', '成都佳发安泰', '成都创意信息'
-      // ... 更多名称将在循环中通过前缀组合生成真实的在地公司
     ],
     prefixes: ['成都智汇', '四川众创', '天府数智', '高新云图', '蓉城精控', '锦江互联', '成华智造', '武侯云创'],
     suffixes: ['科技有限公司', '信息技术有限公司', '数据服务有限公司', '智能制造有限公司', '生物科技有限公司']
@@ -68,17 +66,18 @@ function generateRealName(city: any, i: number) {
   if (i < city.names.length) return city.names[i];
   const p = city.prefixes[i % city.prefixes.length];
   const s = city.suffixes[i % city.suffixes.length];
-  return `${p}${s}(${3000 + i})`;
+  return `${p}${s}(${4000 + i})`;
 }
 
 async function main() {
-  console.log('🏁 开始执行 526 条企业数据的真实化与多城市分布更新...');
+  console.log('🏁 开始执行企业数据全量同步与真实化更新...');
   
-  const allIds = await prisma.enterprise.findMany({ select: { id: true } });
+  // 1. 获取现有所有企业，我们将根据 ID 逐个覆盖
+  const allIds = await prisma.enterprise.findMany({ select: { id: true }, orderBy: { id: 'asc' } });
   let currentIdIndex = 0;
 
   for (const cityGroup of cityData) {
-    console.log(`📍 正在更新 ${cityGroup.city} 区域的数据 (${cityGroup.count} 条)...`);
+    console.log(`📍 正在同步 ${cityGroup.city} 区域的数据 (${cityGroup.count} 条)...`);
     
     for (let i = 0; i < cityGroup.count; i++) {
       if (currentIdIndex >= allIds.length) break;
@@ -87,12 +86,20 @@ async function main() {
       const enterpriseName = generateRealName(cityGroup, i);
       const isP0 = i % 10 === 0;
       
+      // 检查名称冲突，如果有其他 ID 占用了这个名字，先处理掉
+      await prisma.enterprise.deleteMany({
+        where: { 
+          enterpriseName: enterpriseName,
+          id: { not: targetId }
+        }
+      });
+
       await prisma.enterprise.update({
         where: { id: targetId },
         data: {
           enterpriseName,
           base: cityGroup.city,
-          unifiedSocialCreditCode: `91510100MA6${100000 + i}X`,
+          unifiedSocialCreditCode: `91510100MA6${200000 + i}X`,
           legalRepresentative: ['张云', '李强', '王微', '刘洋', '陈墨'][i % 5],
           registeredCapital: BigInt(Math.floor(Math.random() * 50000000 + 1000000)),
           employeeCount: Math.floor(Math.random() * 1000) + 30,
@@ -110,16 +117,9 @@ async function main() {
     }
   }
 
-  // 清理多余的条数（如果总数超过了目标分布）
-  if (currentIdIndex < allIds.length) {
-    const idsToDelete = allIds.slice(currentIdIndex).map(item => item.id);
-    await prisma.enterprise.deleteMany({ where: { id: { in: idsToDelete } } });
-    console.log(`🧹 已清理多余的 ${idsToDelete.length} 条数据。`);
-  }
-
-  console.log('\n✨ 五城联动真实化更新完成！');
-  const finalStats = await prisma.enterprise.groupBy({ by: ['base'], _count: { _all: true } });
-  console.log('📊 最终城市分布统计:', JSON.stringify(finalStats, null, 2));
+  console.log('\n✨ 全量同步与真实化更新完成！');
+  const finalCount = await prisma.enterprise.count();
+  console.log(`📊 最终总企业数: ${finalCount}`);
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());

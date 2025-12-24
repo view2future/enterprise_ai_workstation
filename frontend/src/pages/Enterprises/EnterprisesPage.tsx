@@ -7,21 +7,17 @@ import {
   Eye, 
   Edit, 
   Trash2, 
-  Download, 
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  SlidersHorizontal,
-  Save,
-  RotateCcw,
-  Target,
-  LayoutTemplate,
-  List,
-  ArrowUpRight,
-  Shield,
+  ChevronLeft, 
+  ChevronRight, 
+  Target, 
+  LayoutTemplate, 
+  List, 
+  Fingerprint, 
+  Clock, 
+  Truck, 
+  Package,
   Swords,
-  Fingerprint
+  ExternalLink
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
@@ -43,65 +39,63 @@ const EnterprisesPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
   const { selectedIds, addToCompare, removeFromCompare } = useCompareStore();
 
-  // 初始化 filters 时直接读取 URL 参数
+  const isExpiryMode = searchParams.get('expiry') === 'soon';
+
   const [filters, setFilters] = useState<EnterpriseFilter>(() => ({
     priority: searchParams.get('priority') || undefined,
     feijiangWenxin: searchParams.get('feijiangWenxin') || undefined,
     base: searchParams.get('base') || undefined,
+    clueStage: searchParams.get('clueStage') || undefined,
+    expiry: (searchParams.get('expiry') as any) || undefined,
     page: 0,
     limit: 50
   }));
 
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const getRemainingDays = (dateStr: string | undefined) => {
+    if (!dateStr) return null;
+    const diff = new Date(dateStr).getTime() - new Date().getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
 
-  // 监听 URL 参数变化并实时强制同步过滤器
   React.useEffect(() => {
     const rawBase = searchParams.get('base');
     const rawPriority = searchParams.get('priority');
     const rawTech = searchParams.get('feijiangWenxin');
+    const rawExpiry = searchParams.get('expiry');
+    const rawStage = searchParams.get('clueStage');
     
-    // 显式解码
-    const base = rawBase ? decodeURIComponent(rawBase) : undefined;
-    const priority = rawPriority ? decodeURIComponent(rawPriority) : undefined;
-    const feijiangWenxin = rawTech ? decodeURIComponent(rawTech) : undefined;
-    
-    setFilters(prev => {
-      if (prev.base !== base || prev.priority !== priority || prev.feijiangWenxin !== feijiangWenxin) {
-        return {
-          ...prev,
-          base,
-          priority,
-          feijiangWenxin,
-          page: 0
-        };
-      }
-      return prev;
-    });
+    setFilters(prev => ({
+      ...prev,
+      base: rawBase ? decodeURIComponent(rawBase) : undefined,
+      priority: rawPriority ? decodeURIComponent(rawPriority) : undefined,
+      feijiangWenxin: rawTech ? decodeURIComponent(rawTech) : undefined,
+      clueStage: rawStage ? decodeURIComponent(rawStage) : undefined,
+      expiry: rawExpiry as any,
+      page: 0
+    }));
   }, [searchParams]);
 
-  // 获取企业列表
   const { data: enterprisesData, isLoading, error, refetch } = useQuery({
     queryKey: ['enterprises', filters],
     queryFn: () => enterpriseApi.getEnterprises(filters).then(res => res.data),
     refetchOnWindowFocus: false,
   });
 
+  const handleNavigateToDetail = (id: number) => {
+    const expiryParam = isExpiryMode ? '?expiry=soon' : '';
+    navigate(`/enterprises/${id}${expiryParam}`);
+  };
+
   const handleFilterChange = (key: keyof EnterpriseFilter, value: any) => {
-    setFilters(prev => ({ 
-      ...prev, 
-      [key]: value, 
-      page: key === 'page' ? value : 0 
-    }));
+    setFilters(prev => ({ ...prev, [key]: value, page: key === 'page' ? value : 0 }));
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    queryClient.invalidateQueries({ queryKey: ['enterprises'] });
     refetch();
   };
 
   const handleClearFilters = () => {
-    setFilters({ page: 0, limit: 50 });
     navigate('/enterprises', { replace: true });
   };
 
@@ -109,250 +103,253 @@ const EnterprisesPage: React.FC = () => {
     if (window.confirm('确定要删除这个企业吗？')) {
       try {
         await enterpriseApi.deleteEnterprise(id);
-        await queryClient.invalidateQueries({ queryKey: ['enterprises'] });
-        alert('删除成功');
-      } catch (error) {
-        alert('删除失败');
-      }
+        queryClient.invalidateQueries({ queryKey: ['enterprises'] });
+      } catch (error) {}
     }
   };
 
-  if (error) return <div className="p-6 text-red-600 font-black uppercase">ERROR: FAULT DETECTED IN DATA STREAM</div>;
+  if (error) return <div className="p-10 text-red-600 font-black uppercase">ERROR: DATALINK_FAULT</div>;
 
   return (
     <div className="space-y-6 relative pb-20">
-      {/* 决策路径提示 */}
-      {(filters.priority || filters.feijiangWenxin || filters.base) && (
-        <div className="bg-yellow-100 border-4 border-gray-800 p-4 flex items-center justify-between shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-in fade-in slide-in-from-top-4">
+      {/* 战术状态条 */}
+      {(filters.priority || filters.feijiangWenxin || filters.base || isExpiryMode || filters.clueStage) && (
+        <div className={`border-4 border-gray-900 p-4 flex items-center justify-between shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-in fade-in slide-in-from-top-4 ${isExpiryMode ? 'bg-orange-500 text-white' : 'bg-yellow-100 text-gray-900'}`}>
           <div className="flex items-center gap-2">
-            <Target className="text-yellow-800" />
-            <span className="font-black text-sm uppercase">当前指挥路径：</span>
+            <Target className={isExpiryMode ? 'text-white' : 'text-yellow-800'} />
+            <span className="font-black text-sm uppercase">{isExpiryMode ? '战术任务：即将到期资产履约处理' : '当前筛选路径：'}</span>
             <div className="flex gap-2">
-              {filters.priority && <span className="bg-gray-800 text-white px-2 py-0.5 text-[10px] rounded">PRIORITY: {filters.priority}</span>}
-              {filters.base && <span className="bg-gray-800 text-white px-2 py-0.5 text-[10px] rounded">LOCATION: {filters.base}</span>}
+              {filters.priority && <span className="bg-black text-white px-2 py-0.5 text-[10px] rounded">P: {filters.priority}</span>}
+              {filters.base && <span className="bg-black text-white px-2 py-0.5 text-[10px] rounded">L: {filters.base}</span>}
+              {filters.clueStage && <span className="bg-blue-600 text-white px-2 py-0.5 text-[10px] rounded uppercase">STAGE: {filters.clueStage}</span>}
+              {isExpiryMode && <span className="bg-white text-orange-600 px-2 py-0.5 text-[10px] font-black rounded tracking-tighter italic uppercase">Expiry_Command_Active</span>}
             </div>
           </div>
-          <button onClick={handleClearFilters} className="text-xs font-black underline">重置视图</button>
+          <button onClick={handleClearFilters} className="text-xs font-black underline uppercase tracking-widest">Reset View</button>
         </div>
       )}
 
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">企业资源管理</h1>
-          <p className="text-gray-600 font-bold">ECOSYSTEM ASSET MANAGEMENT</p>
+          <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tighter">
+            {isExpiryMode ? '伙伴授牌管理指挥部' : '企业资源管理'}
+          </h1>
+          <p className="text-gray-500 font-bold text-xs uppercase tracking-widest leading-tight">
+            {isExpiryMode ? 'Partner Certification & Logistics Command' : 'Ecosystem Asset Matrix V4.0'}
+          </p>
         </div>
-        
         <div className="flex items-center gap-3">
-          <div className="flex bg-gray-200 border-4 border-gray-800 p-1 rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-            <button onClick={() => setViewMode('table')} className={`p-2 font-black text-xs flex items-center gap-2 ${viewMode === 'table' ? 'bg-white' : 'text-gray-500'}`}><List size={14}/> 列表</button>
-            <button onClick={() => setViewMode('kanban')} className={`p-2 font-black text-xs flex items-center gap-2 ${viewMode === 'kanban' ? 'bg-white' : 'text-gray-500'}`}><LayoutTemplate size={14}/> 看板</button>
+          <div className="flex bg-gray-200 border-4 border-gray-900 p-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <button onClick={() => setViewMode('table')} className={`p-2 font-black text-[10px] uppercase flex items-center gap-2 transition-all ${viewMode === 'table' ? 'bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-gray-500'}`}><List size={12}/> List</button>
+            <button onClick={() => setViewMode('kanban')} className={`p-2 font-black text-[10px] uppercase flex items-center gap-2 transition-all ${viewMode === 'kanban' ? 'bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-gray-500'}`}><LayoutTemplate size={12}/> Pipeline</button>
           </div>
           <NeubrutalButton variant="success" onClick={() => navigate('/enterprises/new')}>
-            <Plus size={18} className="mr-2" /> 录入资源
+            <Plus size={18} className="mr-2" /> 录入新资源
           </NeubrutalButton>
         </div>
       </div>
 
-      <NeubrutalCard>
-        <form onSubmit={handleSearch} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <NeubrutalInput label="指令搜索" value={filters.search || ''} onChange={(e) => handleFilterChange('search', e.target.value)} placeholder="名称、场景、代码..." icon={<Search size={18} />} />
+      {!isExpiryMode && (
+        <NeubrutalCard>
+          <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <NeubrutalInput label="指令搜索" value={filters.search || ''} onChange={(e) => handleFilterChange('search', e.target.value)} placeholder="名称、场景..." icon={<Search size={18} />} />
             <NeubrutalSelect label="核心技术" value={filters.feijiangWenxin || ''} onChange={(e) => handleFilterChange('feijiangWenxin', e.target.value)}>
               <option value="">全部</option><option value="飞桨">飞桨</option><option value="文心">文心</option>
             </NeubrutalSelect>
             <NeubrutalSelect label="决策优先级" value={filters.priority || ''} onChange={(e) => handleFilterChange('priority', e.target.value)}>
               <option value="">全部</option><option value="P0">P0</option><option value="P1">P1</option><option value="P2">P2</option>
             </NeubrutalSelect>
-            <NeubrutalSelect label="伙伴等级" value={filters.partnerLevel || ''} onChange={(e) => handleFilterChange('partnerLevel', e.target.value)}>
-              <option value="">全部</option><option value="认证级">认证级</option><option value="优选级">优选级</option><option value="无">无</option>
+            <NeubrutalSelect label="线索阶段" value={filters.clueStage || ''} onChange={(e) => handleFilterChange('clueStage', e.target.value)}>
+              <option value="">全部</option>
+              <option value="LEAD">初识线索</option>
+              <option value="EMPOWERING">技术赋能</option>
+              <option value="ADOPTED">产品落地</option>
+              <option value="ECO_PRODUCT">生态产出</option>
+              <option value="POWERED_BY">品牌授权</option>
+              <option value="CASE_STUDY">标杆案例</option>
             </NeubrutalSelect>
-          </div>
-          <div className="flex gap-3">
-            <NeubrutalButton type="submit" variant="primary"><Search size={18} className="mr-2"/> 执行搜索</NeubrutalButton>
-            <NeubrutalButton type="button" variant="secondary" onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}><SlidersHorizontal size={18} className="mr-2"/> 高级下钻</NeubrutalButton>
-          </div>
-        </form>
-      </NeubrutalCard>
+            <div className="flex items-end">
+              <NeubrutalButton type="submit" variant="primary" className="w-full font-black uppercase text-xs">执行全域扫描_</NeubrutalButton>
+            </div>
+          </form>
+        </NeubrutalCard>
+      )}
 
       {isLoading ? (
-        <div className="h-64 flex items-center justify-center text-2xl font-black">扫描中...</div>
+        <div className="h-64 flex items-center justify-center text-xl font-black italic animate-pulse tracking-widest uppercase">Fetching_Data_Stream...</div>
       ) : viewMode === 'table' ? (
-        <div className="space-y-4">
-          {/* 顶部简易分页 */}
-          {enterprisesData && enterprisesData.totalPages > 1 && (
-            <div className="flex justify-between items-center bg-white border-4 border-gray-800 p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-in fade-in slide-in-from-bottom-2">
-              <span className="text-[10px] font-black uppercase">指挥部快速导航 / PAGE {filters.page! + 1} OF {enterprisesData.totalPages}</span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleFilterChange('page', Math.max(0, (filters.page || 0) - 1))}
-                  disabled={filters.page === 0}
-                  className="px-3 py-1 border-2 border-gray-800 hover:bg-gray-100 disabled:opacity-30 transition-all font-black text-[10px] active-gravity"
-                >
-                  PREV
-                </button>
-                <button
-                  onClick={() => handleFilterChange('page', Math.min(enterprisesData.totalPages - 1, (filters.page || 0) + 1))}
-                  disabled={filters.page === enterprisesData.totalPages - 1}
-                  className="px-3 py-1 border-2 border-gray-800 hover:bg-gray-100 disabled:opacity-30 transition-all font-black text-[10px] active-gravity"
-                >
-                  NEXT
-                </button>
-              </div>
-            </div>
-          )}
-
-          <NeubrutalCard className="p-0 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y-4 divide-gray-800">
-                <thead className="bg-gray-800 text-white">
-                  <tr>
-                    <th className="px-4 py-4 w-10"></th>
-                    <th className="px-6 py-4 text-left text-xs font-black uppercase">资产名称</th>
-                    <th className="px-6 py-4 text-left text-xs font-black uppercase">技术栈</th>
-                    <th className="px-6 py-4 text-left text-xs font-black uppercase">能级</th>
-                    <th className="px-6 py-4 text-left text-xs font-black uppercase">调用量 (月)</th>
-                    <th className="px-6 py-4 text-left text-xs font-black uppercase">地区</th>
-                    <th className="px-6 py-4 text-left text-xs font-black uppercase text-right">操作</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y-2 divide-gray-100">
-                  {enterprisesData?.items.map((enterprise) => (
-                    <tr key={enterprise.id} className="hover:bg-blue-50 transition-colors group/row">
-                      <td className="px-4 py-4 text-center">
-                        <input 
-                          type="checkbox" 
-                          checked={selectedIds.includes(enterprise.id)}
-                          onChange={(e) => e.target.checked ? addToCompare(enterprise) : removeFromCompare(enterprise.id)}
-                          className="w-5 h-5 border-4 border-gray-800 rounded-none cursor-pointer accent-red-600"
-                        />
+        <NeubrutalCard className="p-0 overflow-hidden border-8 border-gray-900 shadow-[15px_15px_0px_0px_rgba(0,0,0,1)]">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y-4 divide-gray-900">
+              <thead className={isExpiryMode ? "bg-orange-600 text-white" : "bg-gray-800 text-white"}>
+                <tr>
+                  <th className="px-4 py-4 text-center text-xs font-black uppercase w-16">#</th>
+                  <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest">资产名称</th>
+                  {isExpiryMode ? (
+                    <>
+                      <th className="px-6 py-4 text-left text-xs font-black uppercase w-32"><div className="flex items-center gap-2"><Clock size={14}/> 效期至</div></th>
+                      <th className="px-6 py-4 text-left text-xs font-black uppercase w-40">剩余天数</th>
+                      <th className="px-6 py-4 text-left text-xs font-black uppercase w-32">状态</th>
+                      <th className="px-6 py-4 text-left text-xs font-black uppercase w-48">快递单号</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-6 py-4 text-left text-xs font-black uppercase w-32">技术栈</th>
+                      <th className="px-6 py-4 text-left text-xs font-black uppercase w-24">能级</th>
+                      <th className="px-6 py-4 text-left text-xs font-black uppercase text-right w-32">月调用量</th>
+                    </>
+                  )}
+                  <th className="px-6 py-4 text-left text-xs font-black uppercase w-32">地区</th>
+                  <th className="px-6 py-4 text-center text-xs font-black uppercase w-48">指令控制</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y-2 divide-gray-100">
+                {enterprisesData?.items.map((enterprise, index) => {
+                  const days = getRemainingDays(enterprise.certExpiryDate);
+                  const sequenceNumber = (filters.page || 0) * (filters.limit || 50) + index + 1;
+                  return (
+                    <tr key={enterprise.id} className="hover:bg-gray-50 transition-colors group/row">
+                      <td className="px-4 py-5 text-center font-mono text-xs font-black text-gray-400">
+                        {sequenceNumber.toString().padStart(3, '0')}
                       </td>
-                      <td className="px-6 py-4 relative">
+                      <td className="px-6 py-5">
                         <div 
-                          className="text-sm font-black text-gray-900 border-b-2 border-dashed border-gray-300 inline-block cursor-pointer hover:border-blue-600 hover:text-blue-600 transition-colors"
-                          onClick={() => navigate(`/enterprises/${enterprise.id}`)}
+                          className="text-base font-black text-gray-900 border-b-2 border-dashed border-gray-300 inline-block cursor-pointer hover:text-blue-600 hover:border-blue-600 transition-all"
+                          onClick={() => handleNavigateToDetail(enterprise.id)}
                         >
                           {enterprise.enterpriseName}
                         </div>
-                        <div className="hidden group-hover/row:block absolute left-full top-0 ml-4 z-[60] w-64 animate-in fade-in slide-in-from-left-2">
-                          <NeubrutalCard className="!p-4 !bg-white !shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] border-4">
-                            <p className="text-[10px] font-black uppercase mb-4 text-blue-600">战略资产画像</p>
-                            <div className="h-40 flex items-center justify-center">
-                              <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={150}>
-                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
-                                                                  { subject: '技术力', A: enterprise.ernieModelType?.includes('4.0') ? 100 : (enterprise.paddleUsageLevel === '深度定制' ? 90 : 60) },
-                                                                  { subject: '活跃度', A: Math.min(100, (Number(enterprise.avgMonthlyApiCalls) / 500000) * 100) },
-                                                                  { subject: '荣誉感', A: (enterprise.baiduCertificates as any)?.length > 0 ? 100 : 40 },
-                                                                  { subject: '成熟度', A: enterprise.aiImplementationStage === '全面生产' ? 100 : (enterprise.aiImplementationStage === '试点运行' ? 70 : 40) },
-                                                                  { subject: '影响力', A: enterprise.priority === 'P0' ? 100 : (enterprise.partnerLevel === '认证级' ? 80 : 50) },
-                                                                ]}>                                  <PolarGrid stroke="#1e293b" />
-                                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                                  <Radar dataKey="A" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
-                                </RadarChart>
-                              </ResponsiveContainer>
-                            </div>
-                          </NeubrutalCard>
-                        </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-[10px] font-black px-2 py-0.5 border-2 border-gray-800 rounded-full bg-blue-100 uppercase">{enterprise.feijiangWenxin}</span>
+                      
+                      {isExpiryMode ? (
+                        <>
+                          <td className="px-6 py-5 font-mono font-bold text-sm text-gray-600">
+                            {enterprise.certExpiryDate ? new Date(enterprise.certExpiryDate).toLocaleDateString() : '---'}
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className={`text-[10px] font-black italic px-2 py-1 border-2 border-gray-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${days && days < 30 ? 'bg-red-500 text-white animate-pulse' : (days && days < 90 ? 'bg-yellow-400 text-black' : 'bg-green-500 text-white')}`}>
+                              {days !== null ? `${days} DAYS LEFT` : '---'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className={`text-[8px] font-black px-2 py-1 border-2 border-gray-900 uppercase ${(enterprise as any).shippingStatus === 'RECEIVED' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                              {(enterprise as any).shippingStatus || 'PENDING'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5 font-mono text-xs font-black text-gray-400">
+                            {(enterprise as any).trackingNumber || 'WAITING'}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-6 py-5">
+                            <span className="text-[10px] font-black px-2 py-0.5 border-2 border-gray-900 bg-blue-100 rounded-full uppercase">{enterprise.feijiangWenxin}</span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className={`text-[10px] font-black px-2 py-0.5 border-2 border-gray-900 ${enterprise.priority === 'P0' ? 'bg-red-600 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-white'}`}>{enterprise.priority}</span>
+                          </td>
+                          <td className="px-6 py-5 text-right font-mono font-bold text-sm text-gray-700">
+                            {Number(enterprise.avgMonthlyApiCalls).toLocaleString()}
+                          </td>
+                        </>
+                      )}
+
+                      <td className="px-6 py-5">
+                        <span className="text-xs font-black text-gray-500 uppercase tracking-widest">{enterprise.base}</span>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`text-[10px] font-black px-2 py-0.5 border-2 border-gray-800 rounded-lg ${enterprise.priority === 'P0' ? 'bg-red-600 text-white' : 'bg-gray-100'}`}>{enterprise.priority}</span>
-                      </td>
-                      <td className="px-6 py-4 font-mono font-bold text-xs">
-                        {Number(enterprise.avgMonthlyApiCalls).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-xs font-black text-gray-600 uppercase tracking-widest">{enterprise.base}</td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button onClick={() => navigate(`/enterprises/${enterprise.id}`)} className="p-2 border-2 border-gray-800 hover:bg-gray-800 hover:text-white transition-all"><Eye size={14}/></button>
-                          <button onClick={() => navigate(`/enterprises/${enterprise.id}/edit`)} className="p-2 border-2 border-gray-800 hover:bg-blue-600 hover:text-white transition-all"><Edit size={14}/></button>
-                          <button onClick={() => handleDelete(enterprise.id)} className="p-2 border-2 border-gray-800 hover:bg-red-600 hover:text-white transition-all"><Trash2 size={14}/></button>
+                      <td className="px-6 py-5">
+                        <div className="flex justify-center gap-2">
+                          <button onClick={() => handleNavigateToDetail(enterprise.id)} className="p-2 border-2 border-gray-900 bg-white hover:bg-gray-900 hover:text-white transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none" title="查看卷宗"><Eye size={14}/></button>
+                          <button onClick={() => navigate(`/enterprises/${enterprise.id}/edit`)} className="p-2 border-2 border-gray-900 bg-white hover:bg-blue-600 hover:text-white transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none" title="修改属性"><Edit size={14}/></button>
+                          <button onClick={() => handleDelete(enterprise.id)} className="p-2 border-2 border-gray-900 bg-white hover:bg-red-600 hover:text-white transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none" title="注销节点"><Trash2 size={14}/></button>
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* 底部简易分页 */}
-            {enterprisesData && enterprisesData.totalPages > 1 && (
-              <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t-4 border-gray-800">
-                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-xs font-black uppercase text-gray-700">
-                      显示范围 <span className="text-blue-600">{(enterprisesData.page * enterprisesData.limit) + 1}</span> -{' '}
-                      <span className="text-blue-600">
-                        {Math.min((enterprisesData.page + 1) * enterprisesData.limit, enterprisesData.total)}
-                      </span> / 共 <span className="text-gray-900">{enterprisesData.total}</span> 核心资产
-                    </p>
-                  </div>
-                  <div>
-                    <nav className="relative z-0 inline-flex rounded-none shadow-sm -space-x-1">
-                      <button onClick={() => handleFilterChange('page', Math.max(0, (filters.page || 0) - 1))} disabled={filters.page === 0} className="p-2 border-2 border-gray-800 bg-white hover:bg-gray-100 disabled:opacity-50 font-black"><ChevronLeft size={16} /></button>
-                      {[...Array(enterprisesData.totalPages)].map((_, i) => {
-                        if (i < (filters.page || 0) - 2 || i > (filters.page || 0) + 2) return null;
-                        return (
-                          <button key={i} onClick={() => handleFilterChange('page', i)} className={`px-4 py-2 border-2 border-gray-800 font-black text-xs transition-all ${i === filters.page ? 'bg-gray-800 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-white text-gray-800 hover:bg-gray-100'}`}>{i + 1}</button>
-                        );
-                      })}
-                      <button onClick={() => handleFilterChange('page', Math.min(enterprisesData.totalPages - 1, (filters.page || 0) + 1))} disabled={filters.page === enterprisesData.totalPages - 1} className="p-2 border-2 border-gray-800 bg-white hover:bg-gray-100 disabled:opacity-50 font-black"><ChevronRight size={16} /></button>
-                    </nav>
-                  </div>
-                </div>
-              </div>
-            )}
-          </NeubrutalCard>
-        </div>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </NeubrutalCard>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          {['需求调研', '试点运行', '全面生产', '持续优化'].map(stage => (
-            <div key={stage} className="flex flex-col gap-4">
-              <div className="bg-gray-800 text-white p-3 border-4 border-gray-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex justify-between items-center">
-                <span className="font-black text-[10px] uppercase tracking-widest">{stage}</span>
-                <span className="bg-blue-600 text-[10px] px-2 py-0.5 border-2 border-white rounded font-black">
-                  {enterprisesData?.items.filter(e => e.aiImplementationStage === stage).length || 0}
-                </span>
+          {(isExpiryMode 
+            ? [
+                { id: 'PENDING', label: '待对接 (INIT)', color: 'bg-gray-800' },
+                { id: 'PROCESSING', label: '制作中 (PROD)', color: 'bg-blue-600' },
+                { id: 'SHIPPED', label: '已发货 (TRANSIT)', color: 'bg-orange-500' },
+                { id: 'RECEIVED', label: '已签收 (DONE)', color: 'bg-green-600' }
+              ]
+            : [
+                { id: '需求调研', label: '需求调研', color: 'bg-gray-800' },
+                { id: '试点运行', label: '试点运行', color: 'bg-gray-800' },
+                { id: '全面生产', label: '全面生产', color: 'bg-gray-800' },
+                { id: '持续优化', label: '持续优化', color: 'bg-gray-800' }
+              ]
+          ).map(stage => {
+            const items = isExpiryMode 
+              ? enterprisesData?.items.filter(e => ((e as any).shippingStatus || 'PENDING') === stage.id)
+              : enterprisesData?.items.filter(e => e.aiImplementationStage === stage.id);
+
+            return (
+              <div key={stage.id} className="flex flex-col gap-4">
+                <div className={`${stage.color} text-white p-3 border-4 border-gray-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex justify-between items-center`}>
+                  <span className="font-black text-[10px] uppercase tracking-widest">{stage.label}</span>
+                  <span className="bg-white text-gray-900 text-[10px] px-2 py-0.5 border-2 border-gray-900 rounded font-black">
+                    {items?.length || 0}
+                  </span>
+                </div>
+                <div className="space-y-4 min-h-[500px] p-2 bg-gray-50 border-4 border-dashed border-gray-300 rounded-2xl">
+                  {items?.map(ent => {
+                    const days = getRemainingDays(ent.certExpiryDate);
+                    return (
+                      <div key={ent.id} onClick={() => handleNavigateToDetail(ent.id)} className="p-4 bg-white border-4 border-gray-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer group relative overflow-hidden">
+                        {isExpiryMode && (
+                          <div className={`absolute top-0 right-0 w-2 h-full ${days && days < 30 ? 'bg-red-500 animate-pulse' : (days && days < 90 ? 'bg-yellow-400' : 'bg-green-500')}`}></div>
+                        )}
+                        <h3 className="font-black text-sm mb-2 group-hover:text-blue-600 relative z-10 pr-4">{ent.enterpriseName}</h3>
+                        
+                        {isExpiryMode ? (
+                          <div className="space-y-2 relative z-10">
+                            <div className="flex items-center gap-2 text-[9px] font-black text-gray-400 uppercase">
+                              <Clock size={10} /> {ent.certExpiryDate ? new Date(ent.certExpiryDate).toLocaleDateString() : 'NO_DATE'}
+                            </div>
+                            {(ent as any).trackingNumber && (
+                              <div className="flex items-center gap-2 text-[9px] font-black text-blue-600 uppercase">
+                                <Package size={10} /> {(ent as any).trackingNumber}
+                              </div>
+                            )}
+                            <div className="text-[10px] font-black italic text-red-600">
+                              {days !== null ? `${days} DAYS LEFT` : ''}
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex gap-2 mb-3 relative z-10">
+                              <span className={`text-[8px] font-black px-1 border-2 border-gray-800 ${ent.priority === 'P0' ? 'bg-red-100' : 'bg-gray-50'}`}>{ent.priority}</span>
+                              <span className="text-[8px] font-black px-1 border-2 border-gray-800 bg-blue-100">{ent.feijiangWenxin}</span>
+                            </div>
+                            <div className="mt-2 text-[10px] font-bold text-gray-400 uppercase tracking-tighter relative z-10">CALLS: {Number(ent.avgMonthlyApiCalls).toLocaleString()}</div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="space-y-4 min-h-[500px] p-2 bg-gray-50 border-4 border-dashed border-gray-300 rounded-2xl">
-                {enterprisesData?.items.filter(e => e.aiImplementationStage === stage).map(ent => (
-                  <div key={ent.id} onClick={() => navigate(`/enterprises/${ent.id}`)} className="p-4 bg-white border-4 border-gray-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer group relative overflow-hidden">
-                    {/* MINI GENOME BACKGROUND */}
-                    <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                       <Fingerprint size={80} className="text-blue-600" />
-                    </div>
-                    
-                    <h3 className="font-black text-sm mb-2 group-hover:text-blue-600 relative z-10">{ent.enterpriseName}</h3>
-                    <div className="flex gap-2 mb-3 relative z-10">
-                      <span className={`text-[8px] font-black px-1 border-2 border-gray-800 ${ent.priority === 'P0' ? 'bg-red-100' : 'bg-gray-50'}`}>{ent.priority}</span>
-                      <span className="text-[8px] font-black px-1 border-2 border-gray-800 bg-blue-100">{ent.feijiangWenxin}</span>
-                    </div>
-                    <div className="mt-2 text-[10px] font-bold text-gray-400 uppercase tracking-tighter relative z-10">CALLS: {Number(ent.avgMonthlyApiCalls).toLocaleString()}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {selectedIds.length > 0 && (
-        <div className="fixed bottom-10 right-10 z-[70] animate-in slide-in-from-bottom-10">
-          <button 
-            onClick={() => navigate('/dashboard/war-room')}
-            className="group relative bg-red-600 text-white p-6 border-4 border-gray-900 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all active-gravity"
-          >
-            <div className="flex flex-col items-center">
-              <Swords size={32} className="animate-pulse" />
-              <span className="text-xs font-black mt-2 uppercase">进入态势对比室</span>
-              <div className="absolute -top-4 -right-4 w-10 h-10 bg-white text-red-600 border-4 border-gray-900 flex items-center justify-center font-black rounded-full text-lg shadow-lg">
-                {selectedIds.length}
-              </div>
-            </div>
-          </button>
+      {/* 分页控制 */}
+      <div className="flex justify-center mt-10">
+        <div className="flex border-4 border-gray-900 bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+          <button onClick={() => handleFilterChange('page', Math.max(0, (filters.page || 0) - 1))} disabled={filters.page === 0} className="p-3 border-r-4 border-gray-900 hover:bg-gray-100 disabled:opacity-30 transition-colors"><ChevronLeft size={20}/></button>
+          <div className="flex items-center px-6 font-black text-[10px] uppercase tracking-widest bg-gray-50">PAGE {filters.page! + 1} / {enterprisesData?.totalPages || 1}</div>
+          <button onClick={() => handleFilterChange('page', Math.min((enterprisesData?.totalPages || 1) - 1, (filters.page || 0) + 1))} disabled={filters.page === (enterprisesData?.totalPages || 1) - 1} className="p-3 border-l-4 border-gray-900 hover:bg-gray-100 disabled:opacity-30 transition-colors"><ChevronRight size={20}/></button>
         </div>
-      )}
+      </div>
     </div>
   );
 };

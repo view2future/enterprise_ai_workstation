@@ -23,6 +23,17 @@ export interface Enterprise {
   created_by?: string;
   updated_by?: string;
 
+  // V4.0 Fields
+  clueStage?: string;
+  clueSource?: string;
+  clueSourceDetail?: string;
+  isPoweredBy?: boolean;
+  pbAuthInfo?: string;
+  awardStatus?: string;
+  awardTime?: string;
+  awardLocation?: string;
+  certExpiryDate?: string;
+
   // 企业自身信息完善
   unifiedSocialCreditCode?: string;
   legalRepresentative?: string;
@@ -60,13 +71,16 @@ export interface Enterprise {
 
 export interface EnterpriseFilter {
   search?: string;
+  keyword?: string;
   feijiangWenxin?: string;
   clueInTime?: string;
+  clueStage?: string;
   partnerLevel?: string;
   priority?: string;
   industry?: string;
   taskDirection?: string;
   base?: string;
+  expiry?: 'soon' | 'all';
   registeredCapitalMin?: number;
   registeredCapitalMax?: number;
   employeeCountMin?: number;

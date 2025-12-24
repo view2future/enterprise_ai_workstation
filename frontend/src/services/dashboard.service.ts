@@ -9,10 +9,13 @@ export interface DashboardStats {
   newEnterprisesLast30Days: number;
   priorityStats: Array<{ priority: string; _count: { _all: number } }>;
   feijiangWenxinStats: Array<{ feijiangWenxin: string; _count: { _all: number } }>;
-  regionStats: Array<{ base: string; _count: { _all: number } }>;
-  partnerLevelStats: Array<{ partnerLevel: string; _count: { _all: number } }>;
+  regionStats: Array<{ name: string; value: number }>; // Updated to match backend response
+  partnerLevelStats: Array<{ name: string; value: number }>; // Updated to match backend response
+  clueStageStats: Array<{ stage: string; value: number }>;
   stageStats: Array<{ aiImplementationStage: string; _count: { _all: number } }>;
   overallGrowthRate: string;
+  expiryWarnings: number;
+  activeCities: string[];
 }
 
 export interface ChartData {

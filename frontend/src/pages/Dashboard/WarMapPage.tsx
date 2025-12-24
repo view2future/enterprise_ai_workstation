@@ -37,12 +37,45 @@ const WarMapPage: React.FC = () => {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [logs, setLogs] = useState<string[]>(["[SYSTEM_INIT] Neural Core online", "[WAR_MAP] Ready for temporal simulation..."]);
   const [isBloomed, setIsBloomed] = useState(false);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const { data: enterprises } = useQuery({
     queryKey: ['dashboard', 'map-data'],
     queryFn: () => dashboardApi.getMapData().then(res => res.data),
   });
+
+  const { data: stats } = useQuery({
+    queryKey: ['dashboard', 'stats'],
+    queryFn: () => dashboardApi.getStats().then(res => res.data),
+  });
+
+  const activeCities = useMemo(() => {
+    // 从后端 stats 中获取活跃城市及其统计
+    const rawCities = (stats as any)?.activeCities || [];
+    const regionStats = stats?.regionStats || [];
+
+    // 创建一个映射表以便快速查找城市企业数
+    const cityCountMap: Record<string, number> = {};
+    regionStats.forEach((rs: any) => {
+      cityCountMap[rs.name] = rs.value;
+    });
+
+    // 排序逻辑：成都强制第一，其他按数量倒序
+    const sorted = [...rawCities].sort((a, b) => {
+      const isA_Chengdu = a === '成都' || a === '成都市';
+      const isB_Chengdu = b === '成都' || b === '成都市';
+      
+      if (isA_Chengdu) return -1;
+      if (isB_Chengdu) return 1;
+      
+      const countA = cityCountMap[a] || 0;
+      const countB = cityCountMap[b] || 0;
+      return countB - countA;
+    });
+
+    return sorted as string[];
+  }, [stats]);
 
   // 1. 初始化地图引擎
   useEffect(() => {
@@ -100,6 +133,24 @@ const WarMapPage: React.FC = () => {
       }
     };
   }, []);
+
+  // 执行 FlyTo 逻辑
+  const handleCitySelect = (city: string) => {
+    if (!mapRef.current) return;
+    
+    const coords = cityCoords[city];
+    if (coords) {
+      setSelectedCity(city);
+      setLogs(prev => [`[GEO_COMMAND] FlyTo ${city} Centroid initiated`, ...prev.slice(0, 5)]);
+      
+      // 平滑飞行：[lng, lat]
+      mapRef.current.setZoomAndCenter(13, [coords[1], coords[0]], false, 2000);
+      mapRef.current.setPitch(50, false, 2000);
+    } else {
+      console.warn(`Missing coordinates for city: ${city}`);
+      setLogs(prev => [`[GEO_ERROR] Coordinates missing for ${city}`, ...prev.slice(0, 5)]);
+    }
+  };
 
   const markersData = useMemo(() => {
     if (!Array.isArray(enterprises)) return [];
@@ -244,6 +295,36 @@ const WarMapPage: React.FC = () => {
         </div>
       </div>
 
+      {/* 产业质心导航器 (City Selector) */}
+      <AnimatePresence>
+        {activeCities.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-[110] flex flex-col items-center gap-1"
+          >
+            <div className="bg-gray-950 text-white px-3 py-0.5 border-2 border-blue-900/50 font-black text-[9px] uppercase tracking-[0.2em] shadow-lg">
+              Tactical Region Centroid
+            </div>
+            <div className="flex bg-gray-900/90 backdrop-blur-md border-4 border-gray-950 p-1.5 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+              {activeCities.map(city => (
+                <button 
+                  key={city}
+                  onClick={() => handleCitySelect(city)}
+                  className={`px-4 py-1.5 font-black text-xs uppercase transition-all active-gravity border-2 ${
+                    selectedCity === city 
+                      ? 'bg-blue-600 text-white border-blue-400/50 shadow-[0_0_15px_rgba(59,130,246,0.5)]' 
+                      : 'border-transparent text-gray-400 hover:bg-gray-800 hover:text-white hover:border-gray-700'
+                  }`}
+                >
+                  {city}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="absolute top-6 left-6 z-[100] space-y-6">
         <motion.div 
           initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
@@ -361,25 +442,30 @@ const WarMapPage: React.FC = () => {
         .amap-logo, .amap-copyright { display: none !important; }
         .amap-info-content { padding: 0 !important; background: transparent !important; border: none !important; box-shadow: none !important; }
         .cyber-popup-v2 {
-          background: #ffffff !important; border: 4px solid #1e293b !important;
-          box-shadow: 12px 12px 0px 0px rgba(0,0,0,1) !important;
-          min-width: 260px; padding: 20px; font-family: 'Inter', sans-serif;
-          color: #0f172a !important;
+          background: rgba(2, 6, 23, 0.95) !important; border: 2px solid #1e40af !important;
+          box-shadow: 0 0 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(30, 64, 175, 0.2) !important;
+          backdrop-filter: blur(8px);
+          min-width: 280px; padding: 20px; font-family: 'JetBrains Mono', 'Inter', sans-serif;
+          color: #f8fafc !important;
+          clip-path: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
         }
-        .popup-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; border-bottom: 3px solid #f1f5f9; padding-bottom: 10px; }
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; }
-        .status-dot.red { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
-        .status-dot.blue { background: #3b82f6; box-shadow: 0 0 10px #3b82f6; }
-        .popup-header h4 { margin: 0; font-weight: 900; text-transform: uppercase; color: #0f172a; font-size: 15px; }
-        .popup-body p { margin: 8px 0; font-size: 11px; color: #64748b; text-transform: uppercase; display: flex; justify-content: space-between; }
-        .popup-body strong { color: #0f172a; }
+        .popup-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; border-bottom: 1px solid rgba(30, 64, 175, 0.5); padding-bottom: 12px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 2px; transform: rotate(45deg); }
+        .status-dot.red { background: #ef4444; box-shadow: 0 0 15px #ef4444; }
+        .status-dot.blue { background: #3b82f6; box-shadow: 0 0 15px #3b82f6; }
+        .popup-header h4 { margin: 0; font-weight: 900; text-transform: uppercase; color: #fff; font-size: 14px; letter-spacing: 0.05em; }
+        .popup-body p { margin: 10px 0; font-size: 10px; color: #94a3b8; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
+        .popup-body strong { color: #3b82f6; font-family: 'JetBrains Mono'; }
+        .text-red { color: #ef4444 !important; }
+        .text-blue { color: #3b82f6 !important; }
         .dossier-btn {
-          margin-top: 20px; width: 100%; background: #0f172a; color: white; border: none; padding: 12px;
-          font-weight: 900; text-transform: uppercase; font-size: 11px; cursor: pointer;
-          display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s;
-          box-shadow: 6px 6px 0px 0px rgba(59,130,246,0.5);
+          margin-top: 20px; width: 100%; background: #1e40af; color: white; border: 1px solid #3b82f6; padding: 10px;
+          font-weight: 900; text-transform: uppercase; font-size: 10px; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s;
+          box-shadow: 0 0 15px rgba(30, 64, 175, 0.4);
+          clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
         }
-        .dossier-btn:hover { background: #3b82f6; transform: translate(-2px, -2px); box-shadow: 8px 8px 0px 0px rgba(0,0,0,1); }
+        .dossier-btn:hover { background: #2563eb; transform: scale(1.02); box-shadow: 0 0 25px rgba(59, 130, 246, 0.6); }
         input[type=range]::-webkit-slider-thumb {
           border: 2px solid #ffffff; height: 20px; width: 4px;
           border-radius: 4px; background: #3b82f6; cursor: pointer;

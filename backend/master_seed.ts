@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -32,10 +33,56 @@ function getRandomDate(daysAgo: number) {
 
 async function main() {
   console.log('🧹 正在清理数据库...');
-  await prisma.enterprise.deleteMany({});
+  try {
+    await prisma.auditLog.deleteMany({});
+    await prisma.veracityTask.deleteMany({});
+    await prisma.enterprise.deleteMany({});
+    await prisma.user.deleteMany({});
+  } catch (e) {
+    console.warn('清理过程遇到轻微阻碍（可能是首次运行），继续执行...');
+  }
+
+  console.log('👤 正在创建初始用户...');
+  const hashedPassword = await bcrypt.hash('password123', 10);
+  
+  // Create Demo User
+  await prisma.user.create({
+    data: {
+      username: 'demo_commander',
+      email: 'demo@nexus.ai',
+      password: hashedPassword,
+      firstName: 'Tactical',
+      lastName: 'Demo',
+      role: 'analyst',
+      envScope: 'DEMO',
+      status: 'active'
+    }
+  });
+
+  // Create Prod User
+  await prisma.user.create({
+    data: {
+      username: 'nexus_admin',
+      email: 'admin@nexus.ai',
+      password: hashedPassword,
+      firstName: 'System',
+      lastName: 'Admin',
+      role: 'admin',
+      envScope: 'PROD',
+      status: 'active'
+    }
+  });
   
   console.log('🌱 正在注入 526 条全量真实画像数据...');
   
+  const cities = [
+    '成都', '成都', '成都', '成都', '成都', // 50% weight for Chengdu
+    '重庆', '重庆', 
+    '西安', '西安', 
+    '昆明', '贵阳', 
+    '绵阳', '乐山', '德阳', '宜宾', '眉山', '南充', '泸州', '达州'
+  ];
+
   const enterprises = [];
   for (let i = 0; i < 526; i++) {
     const name = companyPrefixes[i % companyPrefixes.length] + companySuffixes[i % companySuffixes.length] + (i + 1);
@@ -43,13 +90,14 @@ async function main() {
     const isP0 = i % 10 === 0; // 10% P0
     const stage = i % 4 === 0 ? '全面生产' : (i % 3 === 0 ? '试点运行' : '需求调研');
     const createdAt = getRandomDate(365); // 覆盖过去一年
+    const randomCity = cities[Math.floor(Math.random() * cities.length)];
 
     enterprises.push({
       enterpriseName: name,
       feijiangWenxin: tech,
       priority: isP0 ? 'P0' : (i % 3 === 0 ? 'P1' : 'P2'),
       partnerLevel: isP0 ? '认证级' : '无',
-      base: '成都',
+      base: randomCity,
       registeredCapital: BigInt(Math.floor(Math.random() * 50000000)),
       employeeCount: Math.floor(Math.random() * 1000) + 20,
       aiImplementationStage: stage,
@@ -65,6 +113,38 @@ async function main() {
       status: 'active',
       dataSourceType: 'master_seed',
       envScope: 'DEMO'
+    });
+  }
+
+  // Explicitly add key enterprises for Demo
+  const keyEnterprises = [
+    { name: '重庆赛力斯汽车', city: '重庆', industry: '新能源汽车', priority: 'P0' },
+    { name: '西安隆基绿能', city: '西安', industry: '光伏太阳能', priority: 'P0' },
+    { name: '昆明嘉和科技', city: '昆明', industry: '工业互联网', priority: 'P1' },
+    { name: '贵阳满帮集团', city: '贵阳', industry: '智慧物流', priority: 'P0' },
+    { name: '重庆长安汽车', city: '重庆', industry: '人工智能', priority: 'P0' },
+    { name: '西安华为云', city: '西安', industry: '云计算', priority: 'P0' },
+    { name: '宜宾五粮液数字科技', city: '宜宾', industry: '智慧零售', priority: 'P0' },
+    { name: '绵阳长虹电子', city: '绵阳', industry: '智能家电', priority: 'P0' }
+  ];
+
+  for (const comp of keyEnterprises) {
+    enterprises.push({
+      enterpriseName: comp.name,
+      base: comp.city,
+      industry: JSON.stringify({ name: comp.industry, sub: '核心业务' }),
+      priority: comp.priority,
+      status: 'active',
+      envScope: 'PROD',
+      feijiangWenxin: Math.random() > 0.5 ? '飞桨' : '文心',
+      aiImplementationStage: '落地应用',
+      partnerLevel: '核心级',
+      clueStage: '商机转化',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      // Add required fields
+      isPoweredBy: true,
+      pbAuthInfo: '战略合作伙伴'
     });
   }
 

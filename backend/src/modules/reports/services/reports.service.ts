@@ -95,6 +95,7 @@ export class ReportsService {
         title: dto.title,
         type: dto.type,
         format: 'V5_SINGLEFILE',
+        password: dto.password || null, // 支持自定义加密
         envScope: userEnv,
         status: 'ready'
       }

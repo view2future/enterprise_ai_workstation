@@ -176,16 +176,16 @@
     <div class="header">
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h1><i class="fas fa-building"></i> 企业管理系统</h1>
-                    <p class="mb-0">AI技术生态合作伙伴管理平台</p>
+                <div class="col-md-7">
+                    <h1><i class="fas fa-building"></i> 企业管理系统 <small class="fs-5 opacity-75">Enterprise Nexus</small></h1>
+                    <p class="mb-0 opacity-75">AI技术生态合作伙伴管理平台 | AI Ecosystem Partner Intelligence Platform</p>
                 </div>
-                <div class="col-md-6 text-md-end">
+                <div class="col-md-5 text-md-end">
                     <button class="btn btn-light me-2" onclick="refreshData()">
-                        <i class="fas fa-sync-alt"></i> 刷新
+                        <i class="fas fa-sync-alt"></i> 刷新 <span class="small opacity-50">Refresh</span>
                     </button>
                     <button class="btn btn-success" onclick="showAddModal()">
-                        <i class="fas fa-plus"></i> 添加企业
+                        <i class="fas fa-plus"></i> 添加企业 <span class="small opacity-75">Add Entity</span>
                     </button>
                 </div>
             </div>
@@ -201,7 +201,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
-                                    <h6 class="text-muted mb-1">企业总数</h6>
+                                    <h6 class="text-muted mb-1">企业总数 <span class="small opacity-50">Total Entities</span></h6>
                                     <h2 class="mb-0" id="totalEnterprises">0</h2>
                                 </div>
                                 <div class="bg-primary rounded-circle p-3 d-flex align-items-center justify-content-center">
@@ -215,7 +215,7 @@
                 <div class="mb-4">
                     <div class="card">
                         <div class="card-header bg-white">
-                            <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>优先级分布</h5>
+                            <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>优先级分布 <small class="text-muted">Priority</small></h5>
                         </div>
                         <div class="card-body">
                             <div id="priorityStats"></div>
@@ -226,7 +226,7 @@
                 <div class="mb-4">
                     <div class="card">
                         <div class="card-header bg-white">
-                            <h5 class="mb-0"><i class="fas fa-microchip me-2"></i>技术分布</h5>
+                            <h5 class="mb-0"><i class="fas fa-microchip me-2"></i>技术栈 <small class="text-muted">Tech Stack</small></h5>
                         </div>
                         <div class="card-body">
                             <div id="techStats"></div>
@@ -237,7 +237,7 @@
                 <div class="mb-4">
                     <div class="card">
                         <div class="card-header bg-white">
-                            <h5 class="mb-0"><i class="fas fa-clock me-2"></i>最近更新</h5>
+                            <h5 class="mb-0"><i class="fas fa-clock me-2"></i>动态更新 <small class="text-muted">Recent</small></h5>
                         </div>
                         <div class="card-body p-0">
                             <div class="list-group list-group-flush" id="recentUpdates">
@@ -254,9 +254,9 @@
                 <div class="search-container mb-4">
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label">搜索</label>
+                            <label class="form-label">关键词搜索 <span class="small text-muted">Global Search</span></label>
                             <div class="input-group">
-                                <input type="text" class="form-control" id="searchInput" placeholder="企业名称、背景、场景等...">
+                                <input type="text" class="form-control" id="searchInput" placeholder="Search by name, background, or tags...">
                                 <button class="btn btn-outline-secondary" type="button" onclick="searchEnterprises()">
                                     <i class="fas fa-search"></i>
                                 </button>
@@ -264,52 +264,52 @@
                         </div>
                         
                         <div class="col-md-2">
-                            <label class="form-label">飞桨/文心</label>
+                            <label class="form-label">技术生态 <span class="small text-muted">Tech</span></label>
                             <select class="form-select" id="techFilter">
-                                <option value="">全部</option>
-                                <option value="飞桨">飞桨</option>
-                                <option value="文心">文心</option>
+                                <option value="">全部 All</option>
+                                <option value="飞桨">飞桨 Paddle</option>
+                                <option value="文心">文心 ERNIE</option>
                             </select>
                         </div>
                         
                         <div class="col-md-2">
-                            <label class="form-label">优先级</label>
+                            <label class="form-label">优先级 <span class="small text-muted">Rank</span></label>
                             <select class="form-select" id="priorityFilter">
-                                <option value="">全部</option>
-                                <option value="P0">P0</option>
-                                <option value="P1">P1</option>
-                                <option value="P2">P2</option>
+                                <option value="">全部 All</option>
+                                <option value="P0">P0 - Critical</option>
+                                <option value="P1">P1 - High</option>
+                                <option value="P2">P2 - Normal</option>
                             </select>
                         </div>
                         
                         <div class="col-md-2">
-                            <label class="form-label">伙伴等级</label>
+                            <label class="form-label">伙伴等级 <span class="small text-muted">Level</span></label>
                             <select class="form-select" id="levelFilter">
-                                <option value="">全部</option>
-                                <option value="认证级">认证级</option>
-                                <option value="优选级">优选级</option>
-                                <option value="无">无</option>
+                                <option value="">全部 All</option>
+                                <option value="认证级">认证级 Certified</option>
+                                <option value="优选级">优选级 Preferred</option>
+                                <option value="无">无 None</option>
                             </select>
                         </div>
                         
                         <div class="col-md-2">
-                            <label class="form-label">线索季度</label>
+                            <label class="form-label">季度筛选 <span class="small text-muted">Quarter</span></label>
                             <select class="form-select" id="quarterFilter">
-                                <option value="">全部</option>
-                                <option value="2025Q1">2025Q1</option>
-                                <option value="2025Q2">2025Q2</option>
-                                <option value="2025Q3">2025Q3</option>
-                                <option value="2025Q4">2025Q4</option>
+                                <option value="">全部 All</option>
+                                <option value="2025Q1">2025 Q1</option>
+                                <option value="2025Q2">2025 Q2</option>
+                                <option value="2025Q3">2025 Q3</option>
+                                <option value="2025Q4">2025 Q4</option>
                             </select>
                         </div>
                         
                         <div class="col-12">
                             <div class="d-flex justify-content-end">
                                 <button class="btn btn-primary me-2" onclick="searchEnterprises()">
-                                    <i class="fas fa-filter me-1"></i>筛选
+                                    <i class="fas fa-filter me-1"></i> 筛选 Apply Filters
                                 </button>
                                 <button class="btn btn-outline-secondary" onclick="resetFilters()">
-                                    重置
+                                    重置 Reset
                                 </button>
                             </div>
                         </div>
@@ -321,10 +321,10 @@
                     <div class="card-header bg-white">
                         <div class="row align-items-center">
                             <div class="col">
-                                <h5 class="mb-0"><i class="fas fa-list me-2"></i>企业列表</h5>
+                                <h5 class="mb-0"><i class="fas fa-list me-2"></i>企业名录 <small class="text-muted">Entity Directory</small></h5>
                             </div>
                             <div class="col-auto">
-                                <span class="text-muted" id="resultCount">加载中...</span>
+                                <span class="text-muted" id="resultCount">Loading...</span>
                             </div>
                         </div>
                     </div>
@@ -333,15 +333,15 @@
                             <table class="table table-hover mb-0">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>企业名称</th>
-                                        <th>技术</th>
-                                        <th>优先级</th>
-                                        <th>伙伴等级</th>
-                                        <th>注册资本(万)</th>
-                                        <th>参保人数</th>
-                                        <th>地区</th>
-                                        <th>更新时间</th>
-                                        <th>操作</th>
+                                        <th>企业名称 <span class="small opacity-50">Entity Name</span></th>
+                                        <th>技术 <span class="small opacity-50">Tech</span></th>
+                                        <th>优先级 <span class="small opacity-50">Rank</span></th>
+                                        <th>等级 <span class="small opacity-50">Level</span></th>
+                                        <th>注册资本 <span class="small opacity-50">Capital</span></th>
+                                        <th>参保 <span class="small opacity-50">Social</span></th>
+                                        <th>地区 <span class="small opacity-50">Region</span></th>
+                                        <th>更新 <span class="small opacity-50">Updated</span></th>
+                                        <th>操作 <span class="small opacity-50">Actions</span></th>
                                     </tr>
                                 </thead>
                                 <tbody id="enterpriseList">
