@@ -17,14 +17,23 @@ model User {
   password      String
   firstName     String?
   lastName      String?
-  role          String         @default("analyst") // admin, manager, analyst
-  department    String         @default("SW_REGION") // 所属部门，用于同级审计隔离
+  role          String         @default("NEURON") // ARCHITECT, CORTEX, GANGLION, NEURON
+  department    String         @default("GENERAL") // 对应 Ganglion 的节点名称
+  region        String?        @default("SW")      // 宏观区域：SW(西南), CN(华北), CS(华南), CE(华东), CC(华中)
   status        String         @default("active")
   envScope      String         @default("PROD")
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  
+  // 层级关系：上级领导
+  managerId     Int?
+  manager       User?          @relation("UserHierarchy", fields: [managerId], references: [id])
+  subordinates  User[]         @relation("UserHierarchy")
+
   auditLogs     AuditLog[]
   veracityTasks VeracityTask[]
+  enterprises   Enterprise[]   @relation("EnterpriseOwner")
+  comments      Comment[]
 
   @@map("users")
 }
@@ -35,6 +44,15 @@ model Enterprise {
   envScope          String   @default("PROD") @map("环境域")
   feijiangWenxin    String?  @map("飞桨_文心")
   
+  // V5.0 战术地图核心坐标
+  latitude          Float?   @map("纬度")
+  longitude         Float?   @map("经度")
+  region            String?  @default("SW") @map("所属区域") // SW, CN, CS, CE, CC
+  
+  // V5.0 权限归属
+  ownerId           Int?     @map("负责人ID")
+  owner             User?    @relation("EnterpriseOwner", fields: [ownerId], references: [id])
+
   // V4.0 线索漏斗增强
   clueStage         String   @default("LEAD") @map("线索阶段") // LEAD, EMPOWERING, ADOPTED, ECO_PRODUCT, POWERED_BY, CASE_STUDY
   clueSource        String?  @map("线索来源") // PHONE, EVENT, ASSOCIATION, PARTNER, GOV
@@ -121,6 +139,8 @@ model Enterprise {
   lastVeracityCheck       DateTime? @map("最后校验时间")
   evidenceChain           String?     @map("证据链数据")
   
+  comments                Comment[]
+
   @@map("enterprises")
 }
 
@@ -136,10 +156,22 @@ model Policy {
   applyStartDate    DateTime? @map("申报开始时间")
   applyEndDate      DateTime? @map("申报截止时间")
   targetIndustries  String?   @map("面向行业")
+
+  // V5.0 Nexus Commander 新增
+  publishCity       String?   @map("发布城市")
+  publishYear       Int?      @map("发布年份")
+  industryTags      String?   @map("行业标签") // 逗号分隔
+  summary           String?   @map("AI摘要")
+  mindMapJson       String?   @map("脑图JSON")
+  rawContent        String?   @map("清洗后全文")
+  originalUrl       String?   @map("来源URL")
+  processStatus     String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+
   status            String    @default("active")
   envScope          String    @default("PROD") @map("环境域")
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+  comments          Comment[]
 
   @@map("policies")
 }
@@ -198,4 +230,36 @@ model Report {
   envScope       String    @default("PROD") @map("环境域")
   
   @@map("reports")
+}
+
+model SystemUsageLog {
+  id        Int      @id @default(autoincrement())
+  endpoint  String   // 例如 /enterprises/create
+  method    String   // POST, GET
+  userId    Int?
+  timestamp DateTime @default(now())
+  
+  @@map("system_usage_logs")
+}
+
+model Comment {
+  id           Int      @id @default(autoincrement())
+  content      String
+  authorId     Int
+  user         User     @relation(fields: [authorId], references: [id])
+  
+  // 关联目标
+  targetType   String   // 'ENTERPRISE', 'POLICY'
+  
+  // 这里的 targetId 是逻辑关联，不设外键强约束，或者使用多态关联（Prisma 不直接支持，通常用两个可选字段）
+  enterpriseId Int?
+  enterprise   Enterprise? @relation(fields: [enterpriseId], references: [id])
+  
+  policyId     Int?
+  policy       Policy? @relation(fields: [policyId], references: [id])
+
+  mentionedIds String?  // 存储被@的用户ID数组，如 "[1, 5]"
+  createdAt    DateTime @default(now())
+  
+  @@map("comments")
 }

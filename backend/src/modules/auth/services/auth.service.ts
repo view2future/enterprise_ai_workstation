@@ -46,26 +46,35 @@ export class AuthService {
   }
 
   async loginDemo() {
-    const demoUser = await this.prisma.user.findFirst({
-      where: { envScope: 'DEMO', status: 'active' }
-    });
+    try {
+      // 按照用户要求，直接使用特定的演示账号 demo_manager_sw
+      const demoUser = await this.prisma.user.findFirst({
+        where: { username: 'demo_manager_sw', envScope: 'DEMO', status: 'active' }
+      });
 
-    if (!demoUser) {
-      this.logger.error('DEMO user not found in database');
-      throw new UnauthorizedException('演示环境未就绪');
+      if (!demoUser) {
+        this.logger.error('DEMO user demo_manager_sw not found in database');
+        throw new UnauthorizedException('演示账号 demo_manager_sw 未就绪，请运行种子脚本初始化');
+      }
+
+      const payload = {
+        sub: demoUser.id,
+        username: demoUser.username,
+        role: demoUser.role,
+        envScope: demoUser.envScope || 'DEMO'
+      };
+
+      this.logger.log(`Demo login successful for user: ${demoUser.username}`);
+
+      return {
+        access_token: this.jwtService.sign(payload),
+        user: demoUser,
+      };
+    } catch (error) {
+      this.logger.error(`Login Demo Failed: ${error.message}`, error.stack);
+      // 如果是 UnauthorizedException 直接抛出，否则抛出 InternalServerError
+      throw error;
     }
-
-    const payload = {
-      sub: demoUser.id,
-      username: demoUser.username,
-      role: demoUser.role,
-      envScope: 'DEMO' // 统一锁定 Key
-    };
-
-    return {
-      access_token: this.jwtService.sign(payload),
-      user: demoUser,
-    };
   }
 
   async getProfile(userId: number) {

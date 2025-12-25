@@ -20,6 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const env = payload.envScope || payload.env || 'PROD';
     
     const context = {
+      userId: payload.sub, // Ensure userId is passed
       sub: payload.sub,
       username: payload.username,
       role: payload.role,

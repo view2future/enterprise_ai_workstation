@@ -40,11 +40,11 @@ async function bootstrap() {
   );
 
   const configService = app.get(ConfigService);
-  // 强制使用 3001 端口，避免与前端 3000 端口冲突
-  const port = 3001; 
+  // 优先从环境变量读取端口，默认为 80 适配云环境
+  const port = process.env.PORT || 3001; 
 
-  await app.listen(port);
-  console.log(`🚀 企业数据管理平台API服务器强制运行在端口 ${port}`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`🚀 服务器运行在端口 ${port}`);
   console.log(`📊 API文档: http://localhost:${port}/api`);
   console.log(`🏥 健康检查: http://localhost:${port}/health`);
 }

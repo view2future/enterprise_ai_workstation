@@ -16,7 +16,7 @@ export class DashboardController {
   @Get('stats')
   @HttpCode(HttpStatus.OK)
   async getStats(@Query('timeRange') timeRange: string, @Request() req) {
-    return this.dashboardService.getStats(timeRange, req.user.envScope);
+    return this.dashboardService.getStats(timeRange, req.user.envScope, req.user);
   }
 
   @Get('charts')
@@ -29,7 +29,7 @@ export class DashboardController {
   @HttpCode(HttpStatus.OK)
   async getOverview(@Query('timeRange') timeRange: string, @Request() req) {
     const [stats, chartData, recentActivities] = await Promise.all([
-      this.dashboardService.getStats(timeRange, req.user.envScope),
+      this.dashboardService.getStats(timeRange, req.user.envScope, req.user),
       this.dashboardService.getChartData(timeRange, req.user.envScope),
       this.dashboardService.getRecentActivities(timeRange, req.user.envScope),
     ]);

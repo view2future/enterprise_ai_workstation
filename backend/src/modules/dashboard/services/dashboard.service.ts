@@ -19,9 +19,22 @@ export class DashboardService {
     }
   }
 
-  async getStats(timeRange: string = 'all', userEnv: string = 'PROD') {
-    const where: any = { status: 'active', envScope: userEnv };
-    const globalWhere: any = { status: 'active', envScope: userEnv }; // 全局基础过滤
+  async getStats(timeRange: string = 'all', userEnv: string = 'PROD', user?: any) {
+    const baseWhere: any = { status: 'active', envScope: userEnv };
+    
+    // Neural Hub 数据隔离逻辑：
+    // CORTEX 和 ARCHITECT 拥有上帝视角（全库）
+    // GANGLION 和 NEURON 拥有区域视角（本区域内所有数据）
+    if (user && user.role !== 'CORTEX' && user.role !== 'ARCHITECT') {
+      if (user.region) {
+        baseWhere.region = user.region; // 基于区域(SW/CE等)进行隔离，而不是基于城市或个人
+      } else {
+        baseWhere.base = user.department; // 降级方案
+      }
+    }
+
+    const where: any = { ...baseWhere };
+    const globalWhere: any = { ...baseWhere };
     const startDate = this.getStartDate(timeRange);
     if (startDate) where.createdAt = { gte: startDate };
 
@@ -30,7 +43,6 @@ export class DashboardService {
       this.prisma.enterprise.count({ where: { ...where, priority: 'P0' } }),
       this.prisma.enterprise.count({ where: { ...where, feijiangWenxin: '飞桨' } }),
       this.prisma.enterprise.count({ where: { ...where, feijiangWenxin: '文心' } }),
-      // 核心修复：效期预警永远扫描全库（globalWhere），不受 timeRange 限制
       this.prisma.enterprise.count({
         where: {
           ...globalWhere,

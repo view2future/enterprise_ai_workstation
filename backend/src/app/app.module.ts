@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from '../modules/auth/auth.module';
@@ -10,13 +13,19 @@ import { ReportsModule } from '../modules/reports/reports.module';
 import { UsersModule } from '../modules/users/users.module';
 import { SyncModule } from '../modules/sync/sync.module';
 import { VeracityModule } from '../modules/veracity/veracity.module';
+import { CommentsModule } from '../modules/comments/comments.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { SystemUsageInterceptor } from '../interceptors/system-usage.interceptor';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '..', 'static'),
+      exclude: ['/api*'],
     }),
     PrismaModule,
     AuthModule,
@@ -27,8 +36,15 @@ import { PrismaModule } from '../prisma/prisma.module';
     UsersModule,
     SyncModule,
     VeracityModule,
+    CommentsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: SystemUsageInterceptor,
+    },
+  ],
 })
 export class AppModule {}
