@@ -1,48 +1,27 @@
-import apiClient from './api';
+import api from './api';
 
 export interface User {
   id: number;
-  email: string;
   username: string;
+  email: string;
+  role: string;
+  envScope: string;
+  status: string;
+  createdAt: string;
+  created_at: string;
   firstName?: string;
   lastName?: string;
-  role: string;
-  status: string;
-  envScope: string; // 新增：环境权限标识
-  created_at: string;
-  updated_at: string;
-}
-
-export interface LoginCredentials {
-  username: string;
-  password: string;
 }
 
 export const authApi = {
-  // 生产环境常规登录
-  login: (credentials: LoginCredentials) => {
-    return apiClient.post<{ access_token: string; user: User }>('/auth/login', credentials);
-  },
-
-  // 演示环境快捷登录 (V2.0)
-  loginDemo: () => {
-    return apiClient.post<{ access_token: string; user: User }>('/auth/common-sync', {}, {
-      timeout: 15000 
-    });
-  },
-
-  // 获取当前用户信息
-  getProfile: () => {
-    return apiClient.get<User>('/auth/profile');
-  },
-
-  // 获取所有用户 (管理端使用)
-  getAllUsers: () => {
-    return apiClient.get<User[]>('/users');
-  },
-
-  // 删除用户
-  deleteUser: (id: number) => {
-    return apiClient.delete(`/users/${id}`);
-  }
+  login: (credentials: any) => api.post('/auth/login', credentials),
+  loginDemo: () => api.post('/auth/common-sync', { demo: true }),
+  getProfile: () => api.get('/auth/profile'),
+  refresh: () => api.post('/auth/refresh'),
+  getAllUsers: () => api.get('/users'),
+  deleteUser: (id: number) => api.delete(`/users/${id}`),
 };
+
+export const login = authApi.login;
+export const loginDemo = authApi.loginDemo;
+export const refresh = authApi.refresh;

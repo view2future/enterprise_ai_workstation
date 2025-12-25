@@ -1,25 +1,23 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthService } from './services/auth.service';
 import { AuthController } from './controllers/auth.controller';
-import { LocalStrategy } from './strategies/local.strategy';
-import { PrismaService } from '../../prisma/prisma.service';
+import { UsersModule } from '../users/users.module';
+import { PassportModule } from '@nestjs/passport';
+import { JwtModule } from '@nestjs/jwt';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
-    JwtModule.registerAsync({
-      useFactory: async (configService: ConfigService) => ({
-        // 强制使用统一密钥
-        secret: configService.get<string>('JWT_SECRET') || 'ENTERPRISE_SECRET_2025',
-        signOptions: { expiresIn: '24h' },
-      }),
-      inject: [ConfigService],
+    UsersModule,
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.register({
+      // 终极对齐：强制使用固定 Secret，排除环境变量干扰
+      secret: 'liantu-nexus-secret-v5-2025',
+      signOptions: { expiresIn: '7d' },
     }),
   ],
+  providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy, PrismaService],
   exports: [AuthService],
 })
 export class AuthModule {}

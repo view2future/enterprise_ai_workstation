@@ -72,7 +72,6 @@ async function main() {
         certExpiryDate,
         feijiangWenxin,
         clueStage,
-        isPoweredBy,
         createdAt,
         clueInTime,
         industry: industries[Math.floor(Math.random() * industries.length)],

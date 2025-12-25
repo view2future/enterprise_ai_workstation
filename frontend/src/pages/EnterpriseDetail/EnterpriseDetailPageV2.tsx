@@ -1,103 +1,117 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { enterpriseApi, Enterprise } from '../../services/enterprise.service';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Shield, Edit, Download, Building2, MapPin, 
-  Link as LinkIcon, Cpu, Zap, Trophy, Award, 
-  BarChart as BarChartIcon, Lock, Unlock, 
-  Sparkles, Radar as RadarIcon, Fingerprint,
-  Activity, History, FileText, ShieldCheck, Copy,
-  Truck, Package, Calendar, CheckCircle2, AlertTriangle,
-  ArrowRight, Save, Loader2
+  Building2, MapPin, Globe, Award, Zap, 
+  Calendar, Clock, ShieldCheck, Mail, Phone, 
+  Users, BarChart3, ChevronRight, Edit, 
+  ArrowLeft, Fingerprint, ExternalLink, 
+  Download, Share2, Target, Layers, 
+  Cpu, Rocket, Briefcase, History, 
+  Activity, Star, Sparkles, FileText, 
+  ShieldAlert, Shield, Save, Truck, 
+  Package, Loader2, Copy, AlertTriangle,
+  Radar as RadarIcon, CheckCircle2
 } from 'lucide-react';
-import { NeubrutalCard, NeubrutalButton } from '../../components/ui/neubrutalism/NeubrutalComponents';
 import { 
-  Radar, RadarChart, PolarGrid, PolarAngleAxis, 
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip 
+  ResponsiveContainer, RadarChart, PolarGrid, 
+  PolarAngleAxis, Radar, Tooltip as RechartsTooltip,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell
 } from 'recharts';
-
-import { VeracityHUD } from '../../components/veracity/VeracityHUD';
-import { Toast } from '../../components/common/Toast';
+import { enterpriseApi, Enterprise } from '../../services/enterprise.service';
+import { NeubrutalCard, NeubrutalButton } from '../../components/ui/neubrutalism/NeubrutalComponents';
 import { soundEngine } from '../../utils/SoundUtility';
+import { VeracityHUD } from '../../components/veracity/VeracityHUD';
+
+const Toast: React.FC<{ show: boolean; message: string; onClose: () => void }> = ({ show, message, onClose }) => (
+  <AnimatePresence>
+    {show && (
+      <motion.div 
+        initial={{ y: 50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 50, opacity: 0 }}
+        className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-black text-white border-4 border-white px-8 py-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] font-black uppercase italic tracking-widest text-sm"
+      >
+        {message}
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
 
 const EnterpriseDetailPageV2: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const enterpriseId = parseInt(id || '0');
   const navigate = useNavigate();
-  const location = useLocation();
   const queryClient = useQueryClient();
-  const enterpriseId = Number(id);
-  
-  // 检查是否是从预警页面进入的“处理模式”
-  const isOpsMode = new URLSearchParams(location.search).get('expiry') === 'soon';
-
-  const [isDecrypting, setIsDecrypting] = useState(true);
-  const [isVeracityOpen, setIsVeracityOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [isVeracityOpen, setIsVeracityOpen] = useState(false);
+  const [isDecrypting, setIsDecrypting] = useState(true);
 
-  // 物流表单状态
-  const [editLogistics, setEditLogistics] = useState({
-    shippingStatus: '',
-    trackingNumber: '',
-    logisticsNotes: '',
-    awardStatus: ''
-  });
+  // 获取 URL 参数检查是否处于“任务模式” (资质续期等)
+  const isOpsMode = new URLSearchParams(window.location.search).get('mode') === 'ops';
 
   const { data: enterprise, isLoading, error } = useQuery({
     queryKey: ['enterprise', enterpriseId],
     queryFn: () => enterpriseApi.getEnterprise(enterpriseId).then(res => res.data),
-    enabled: !!id,
-    onSuccess: (data) => {
-      setEditLogistics({
-        shippingStatus: (data as any).shippingStatus || 'PENDING',
-        trackingNumber: (data as any).trackingNumber || '',
-        logisticsNotes: (data as any).logisticsNotes || '',
-        awardStatus: (data as any).awardStatus || '未授牌'
-      });
-    }
+    enabled: !!enterpriseId,
   });
+
+  // 物流/效期快速编辑状态
+  const [editLogistics, setEditLogistics] = useState({
+    awardStatus: '',
+    shippingStatus: '',
+    trackingNumber: '',
+    logisticsNotes: ''
+  });
+
+  useEffect(() => {
+    if (enterprise) {
+      setEditLogistics({
+        awardStatus: enterprise.awardStatus || '未授牌',
+        shippingStatus: (enterprise as any).shippingStatus || 'PENDING',
+        trackingNumber: (enterprise as any).trackingNumber || '',
+        logisticsNotes: (enterprise as any).logisticsNotes || ''
+      });
+      // 模拟解密动画
+      const timer = setTimeout(() => setIsDecrypting(false), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [enterprise]);
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => enterpriseApi.updateEnterprise(enterpriseId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['enterprise', enterpriseId]);
-      setToastMsg('指挥指令已同步至内核');
+      queryClient.invalidateQueries({ queryKey: ['enterprise', enterpriseId] });
+      setToastMsg('指令同步成功 / KERNEL_UPDATED');
       setShowToast(true);
       soundEngine.playSuccess();
+      setTimeout(() => setShowToast(false), 3000);
     }
   });
 
   const handleCopyName = () => {
-    if (enterprise?.enterpriseName) {
-      navigator.clipboard.writeText(enterprise.enterpriseName);
-      setToastMsg('企业名称已复制到剪切板');
-      setShowToast(true);
-      soundEngine.playSuccess();
-    }
+    navigator.clipboard.writeText(enterprise?.enterpriseName || '');
+    setToastMsg('主体名称已复制 / IDENTITY_COPIED');
+    setShowToast(true);
+    soundEngine.playPneumatic();
+    setTimeout(() => setShowToast(false), 2000);
   };
-
-  useEffect(() => {
-    if (!isLoading && enterprise) {
-      const timer = setTimeout(() => setIsDecrypting(false), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading, enterprise]);
 
   if (isLoading) {
     return (
-      <div className="h-[70vh] flex flex-col items-center justify-center">
-        <div className="w-20 h-20 border-t-4 border-blue-600 border-solid rounded-full animate-spin"></div>
-        <p className="mt-6 font-black uppercase text-gray-400 tracking-[0.3em]">正在调取情报卷宗...</p>
+      <div className="h-screen flex flex-col items-center justify-center bg-gray-900">
+        <div className="w-24 h-24 border-8 border-white border-t-blue-500 animate-spin mb-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"></div>
+        <p className="text-blue-400 font-black uppercase italic tracking-[0.3em] animate-pulse">Accessing_Confidential_Node...</p>
       </div>
     );
   }
 
   if (error || !enterprise) {
     return (
-      <div className="p-10 text-center">
-        <NeubrutalCard className="max-w-md mx-auto border-red-500">
+      <div className="h-screen flex items-center justify-center bg-gray-100 p-6 text-center">
+        <NeubrutalCard className="max-w-md !p-12 border-8 border-gray-900 bg-white">
           <Shield size={64} className="mx-auto text-red-500 mb-6" />
           <h2 className="text-2xl font-black uppercase mb-4">访问拒绝 / 未找到记录</h2>
           <NeubrutalButton onClick={() => navigate('/enterprises')}>返回资源注册库</NeubrutalButton>
@@ -132,7 +146,7 @@ const EnterpriseDetailPageV2: React.FC = () => {
             exit={{ opacity: 0, scale: 1.1 }}
             className="fixed inset-0 z-[100] bg-gray-900 flex flex-col items-center justify-center"
           >
-            <Lock size={80} className="text-blue-500 animate-bounce mb-8" />
+            <ShieldAlert size={80} className="text-blue-500 animate-bounce mb-8" />
             <div className="w-64 h-2 bg-gray-800 border border-gray-700 overflow-hidden">
               <motion.div 
                 initial={{ width: 0 }}
@@ -166,13 +180,13 @@ const EnterpriseDetailPageV2: React.FC = () => {
               </h1>
             </div>
             <div className="flex flex-wrap gap-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-              <span className={daysLeft && daysLeft < 90 ? 'text-red-600 animate-pulse' : ''}>
-                效期余量: {daysLeft !== null ? `${daysLeft} 天` : '未录入'}
+              <span className={`flex items-center gap-1 ${daysLeft && daysLeft < 90 ? 'text-red-600 animate-pulse' : ''}`}>
+                <Clock size={12} /> 效期余量: {daysLeft !== null ? `${daysLeft} 天` : '未录入'}
               </span>
               <span>•</span>
-              <span>阶段: {enterprise.clueStage || 'LEAD'}</span>
+              <span className="flex items-center gap-1"><Layers size={12} /> 阶段: {enterprise.clueStage || 'LEAD'}</span>
               <span>•</span>
-              <span className="text-blue-600">等级: {enterprise.partnerLevel || '尚未认证'}</span>
+              <span className="text-blue-600 flex items-center gap-1"><Award size={12} /> 等级: {enterprise.partnerLevel || '尚未认证'}</span>
             </div>
           </div>
         </div>
@@ -193,112 +207,120 @@ const EnterpriseDetailPageV2: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 pt-12 space-y-12">
-        {/* OPS MODE: LOGISTICS CONTROL TOWER */}
-        <AnimatePresence>
-          {isOpsMode && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              className="overflow-hidden"
-            >
-              <NeubrutalCard className="bg-white border-orange-500 border-8 !p-8 shadow-[15px_15px_0px_0px_rgba(249,115,22,1)]">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="space-y-1">
-                    <h2 className="text-3xl font-black uppercase italic flex items-center gap-3">
-                      <Truck className="text-orange-600" size={32} /> 伙伴授牌管理指挥部
-                    </h2>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Partner Certification & Logistics Command Tower</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="px-4 py-2 bg-gray-900 text-white font-black text-xs uppercase italic">
-                      Task_ID: RE-{id}-{new Date().getFullYear()}
-                    </div>
-                  </div>
+        {/* LOGISTICS & CERTIFICATION CONTROL TOWER */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="overflow-hidden"
+        >
+          <NeubrutalCard className={`${isOpsMode ? 'border-orange-500 shadow-[15px_15px_0px_0px_rgba(249,115,22,1)]' : 'border-blue-600 shadow-[15px_15px_0px_0px_rgba(59,130,246,1)]'} bg-white border-8 !p-8`}>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-6">
+              <div className="space-y-1">
+                <h2 className="text-3xl font-black uppercase italic flex items-center gap-3 text-gray-900">
+                  <Award className={isOpsMode ? 'text-orange-600' : 'text-blue-600'} size={32} /> 伙伴授牌与证书物流指挥部
+                </h2>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Partner Certification & Strategic Logistics Control Tower</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="px-4 py-2 bg-gray-900 text-white font-black text-[10px] uppercase italic tracking-widest border-2 border-gray-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  REGISTRY_ID: {enterprise.id.toString().padStart(6, '0')}
                 </div>
+                {isOpsMode && (
+                  <div className="px-4 py-2 bg-red-600 text-white font-black text-[10px] uppercase italic animate-pulse border-2 border-black">
+                    PRIORITY_OPS_MODE
+                  </div>
+                )}
+              </div>
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-gray-500">当前授牌状态</label>
-                    <select 
-                      value={editLogistics.awardStatus}
-                      onChange={(e) => setEditLogistics({...editLogistics, awardStatus: e.target.value})}
-                      className="w-full p-3 border-4 border-gray-900 font-black uppercase bg-white focus:ring-0"
-                    >
-                      <option value="未授牌">未授牌</option>
-                      <option value="已授牌">已授牌</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-gray-500">证书寄送状态</label>
-                    <select 
-                      value={editLogistics.shippingStatus}
-                      onChange={(e) => setEditLogistics({...editLogistics, shippingStatus: e.target.value})}
-                      className="w-full p-3 border-4 border-gray-900 font-black uppercase bg-white focus:ring-0"
-                    >
-                      <option value="PENDING">待对接 (PENDING)</option>
-                      <option value="PROCESSING">制作中 (PROCESSING)</option>
-                      <option value="SHIPPED">已发货 (SHIPPED)</option>
-                      <option value="RECEIVED">已签收 (RECEIVED)</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="text-[10px] font-black uppercase text-gray-500">快递单号 (顺丰/EMS)</label>
-                    <div className="relative">
-                      <Package className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                      <input 
-                        type="text"
-                        value={editLogistics.trackingNumber}
-                        onChange={(e) => setEditLogistics({...editLogistics, trackingNumber: e.target.value})}
-                        className="w-full p-3 pl-10 border-4 border-gray-900 font-black focus:ring-0"
-                        placeholder="输入物流追踪码..."
-                      />
-                    </div>
-                  </div>
-                  <div className="md:col-span-3 space-y-2">
-                    <label className="text-[10px] font-black uppercase text-gray-500">战术备注 (物流/更新说明)</label>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={14} className="text-blue-600" />
+                  <label className="text-[10px] font-black uppercase text-gray-500">资质授牌状态</label>
+                </div>
+                <select 
+                  value={editLogistics.awardStatus}
+                  onChange={(e) => setEditLogistics({...editLogistics, awardStatus: e.target.value})}
+                  className="w-full p-3 border-4 border-gray-900 font-black uppercase bg-gray-50 focus:bg-white transition-colors focus:ring-0 cursor-pointer"
+                >
+                  <option value="未授牌">未授牌 / NOT_AWARDED</option>
+                  <option value="已授牌">已授牌 / AWARDED</option>
+                  <option value="待审核">待审核 / UNDER_REVIEW</option>
+                </select>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Truck size={14} className="text-blue-600" />
+                  <label className="text-[10px] font-black uppercase text-gray-500">证书物流追踪</label>
+                </div>
+                <select 
+                  value={editLogistics.shippingStatus}
+                  onChange={(e) => setEditLogistics({...editLogistics, shippingStatus: e.target.value})}
+                  className="w-full p-3 border-4 border-gray-900 font-black uppercase bg-gray-50 focus:bg-white transition-colors focus:ring-0 cursor-pointer"
+                >
+                  <option value="PENDING">待对接 / PENDING</option>
+                  <option value="PROCESSING">制作中 / PROCESSING</option>
+                  <option value="SHIPPED">已发货 / SHIPPED</option>
+                  <option value="RECEIVED">已签收 / RECEIVED</option>
+                </select>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <div className="flex items-center gap-2">
+                  <Package size={14} className="text-blue-600" />
+                  <label className="text-[10px] font-black uppercase text-gray-500">快递单号 (SF/EMS)</label>
+                </div>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
                     <input 
                       type="text"
-                      value={editLogistics.logisticsNotes}
-                      onChange={(e) => setEditLogistics({...editLogistics, logisticsNotes: e.target.value})}
-                      className="w-full p-3 border-4 border-gray-900 font-bold focus:ring-0"
-                      placeholder="记录此次更新的关键细节..."
+                      placeholder="ENTER TRACKING NUMBER"
+                      value={editLogistics.trackingNumber}
+                      onChange={(e) => setEditLogistics({...editLogistics, trackingNumber: e.target.value})}
+                      className="w-full pl-4 pr-4 py-3 border-4 border-gray-900 font-mono text-sm font-black uppercase bg-gray-50 focus:bg-white focus:ring-0"
                     />
                   </div>
-                  <div className="flex items-end">
-                    <NeubrutalButton 
-                      variant="primary" 
-                      className="w-full py-3 h-[52px]" 
-                      onClick={() => updateMutation.mutate(editLogistics)}
-                      disabled={updateMutation.isLoading}
-                    >
-                      {updateMutation.isLoading ? <Loader2 className="animate-spin mx-auto" /> : <><Save size={18} className="mr-2" /> 同步指令</>}
-                    </NeubrutalButton>
+                  <button 
+                    onClick={() => updateMutation.mutate(editLogistics)}
+                    disabled={updateMutation.isLoading}
+                    className="px-6 bg-black text-white font-black uppercase italic text-xs hover:bg-blue-600 transition-all active:translate-y-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {updateMutation.isLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    同步内核
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 底部备注区 */}
+            <div className="mt-8 pt-6 border-t-2 border-dashed border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4 text-[10px] font-bold text-gray-400 uppercase italic">
+                  <div className="flex items-center gap-1">
+                    <Calendar size={12} />
+                    最后更新: {new Date(enterprise.updatedAt).toLocaleString()}
+                  </div>
+                  <div className="flex items-center gap-1 ml-4">
+                    <Zap size={12} className="text-yellow-500" />
+                    数据链路: 加密且实时
                   </div>
                 </div>
-
-                <div className="mt-10 p-6 bg-orange-100 border-4 border-dashed border-orange-300 grid grid-cols-1 md:grid-cols-3 gap-6">
-                   <div className="flex items-center gap-4">
-                      <Calendar className="text-orange-600" />
-                      <div>
-                        <p className="text-[8px] font-black uppercase text-orange-800">最后更新日期</p>
-                        <p className="text-xs font-bold">{(enterprise as any).lastRenewalDate ? new Date((enterprise as any).lastRenewalDate).toLocaleDateString() : '尚未执行更新'}</p>
-                      </div>
-                   </div>
-                   <div className="flex items-center gap-4 border-l-4 border-orange-200 pl-6">
-                      <CheckCircle2 className="text-green-600" />
-                      <div>
-                        <p className="text-[8px] font-black uppercase text-orange-800">查收状态</p>
-                        <p className="text-xs font-bold">{(enterprise as any).receiptStatus === 'RECEIVED' ? '已确认送达' : '等待签收'}</p>
-                      </div>
-                   </div>
-                   <div className="flex items-center gap-2 text-orange-800 font-black italic text-xs justify-end">
-                      PROTOCOL_V4_READY <ArrowRight size={14} />
-                   </div>
-                </div>
-              </NeubrutalCard>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                {editLogistics.trackingNumber && (
+                  <a 
+                    href={`https://www.sf-express.com/we/ow/portal/cn/tc/details?trackRes=${editLogistics.trackingNumber}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] font-black text-blue-600 hover:underline flex items-center gap-1 uppercase"
+                  >
+                    实时物流追踪 ➔
+                  </a>
+                )}
+              </div>
+            </div>
+          </NeubrutalCard>
+        </motion.div>
 
         {/* ORIGINAL CONTENT (NARRATIVE, TECH STACK, RADAR) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -309,7 +331,7 @@ const EnterpriseDetailPageV2: React.FC = () => {
                 <Sparkles size={150} />
               </div>
               <h3 className="text-blue-400 font-black uppercase text-xs tracking-[0.4em] mb-6 flex items-center gap-2">
-                <FileText size={14} /> 情报综述 // V4.0
+                <FileText size={14} /> 情报综述 // V5.0
               </h3>
               <p className="text-xl font-bold leading-relaxed italic text-blue-50">
                 "{enterprise.enterpriseName} 目前处于线索转化的 <span className="text-yellow-400 underline underline-offset-8">{enterprise.clueStage || 'LEAD'}</span> 阶段。
@@ -334,10 +356,10 @@ const EnterpriseDetailPageV2: React.FC = () => {
               </div>
             </div>
 
-            {/* V4.0 Business & Logistics Cards */}
+            {/* V5.0 Business & Logistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <NeubrutalCard className="bg-white border-blue-600 border-b-8">
-                <h4 className="font-black uppercase text-sm mb-6 flex items-center gap-2">
+                <h4 className="font-black uppercase text-sm mb-6 flex items-center gap-2 text-gray-900">
                   <ShieldCheck className="text-blue-600" size={18} /> 品牌授权与荣誉
                 </h4>
                 <div className="space-y-4">
@@ -347,7 +369,7 @@ const EnterpriseDetailPageV2: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-end border-b border-gray-100 pb-2">
                     <span className="text-[10px] font-bold text-gray-400 uppercase">授牌地点</span>
-                    <span className="font-black text-xs">{enterprise.awardLocation || '等待预约'}</span>
+                    <span className="font-black text-xs text-gray-900">{enterprise.awardLocation || '等待预约'}</span>
                   </div>
                   <div className="flex justify-between items-end border-b border-gray-100 pb-2">
                     <span className="text-[10px] font-bold text-gray-400 uppercase">PB 授权产品</span>
@@ -357,8 +379,8 @@ const EnterpriseDetailPageV2: React.FC = () => {
               </NeubrutalCard>
 
               <NeubrutalCard className="bg-white border-purple-600 border-b-8">
-                <h4 className="font-black uppercase text-sm mb-6 flex items-center gap-2">
-                  <Zap className="text-purple-600" size={18} /> 技术渗透载荷 (V4.0)
+                <h4 className="font-black uppercase text-sm mb-6 flex items-center gap-2 text-gray-900">
+                  <Zap className="text-purple-600" size={18} /> 技术渗透载荷 (V5.0)
                 </h4>
                 <div className="space-y-4">
                   <div className="flex justify-between items-end border-b border-gray-100 pb-2">
@@ -367,11 +389,11 @@ const EnterpriseDetailPageV2: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-end border-b border-gray-100 pb-2">
                     <span className="text-[10px] font-bold text-gray-400 uppercase">业务方向</span>
-                    <span className="font-black text-xs text-right">{enterprise.taskDirection || '全量 AI 应用'}</span>
+                    <span className="font-black text-xs text-right text-gray-900">{enterprise.taskDirection || '全量 AI 应用'}</span>
                   </div>
                   <div className="flex justify-between items-end border-b border-gray-100 pb-2">
                     <span className="text-[10px] font-bold text-gray-400 uppercase">落地场景</span>
-                    <span className="font-black text-xs text-right italic">{enterprise.usageScenario || '探索中'}</span>
+                    <span className="font-black text-xs text-right italic text-gray-900">{enterprise.usageScenario || '探索中'}</span>
                   </div>
                 </div>
               </NeubrutalCard>
@@ -380,7 +402,7 @@ const EnterpriseDetailPageV2: React.FC = () => {
 
           {/* AI Genome Radar */}
           <NeubrutalCard className="bg-white border-8 border-gray-900 !p-8 shadow-[15px_15px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-8 text-gray-900">
               <h3 className="font-black uppercase text-sm italic tracking-widest flex items-center gap-2">
                 <RadarIcon className="text-blue-600" size={18} /> AI 基因特质指纹
               </h3>
@@ -440,11 +462,11 @@ const EnterpriseDetailPageV2: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 bg-gray-900 flex items-center justify-center shrink-0">
-                    <LinkIcon className="text-white" size={16} />
+                    <Globe className="text-white" size={16} />
                   </div>
                   <div>
                     <p className="text-[8px] font-black uppercase text-gray-600">数字门户</p>
-                    <a href={`http://${enterprise.website}`} target="_blank" className="text-[10px] font-black text-blue-800 underline uppercase">{enterprise.website || '离线状态'}</a>
+                    <a href={enterprise.website ? `http://${enterprise.website}` : '#'} target="_blank" rel="noreferrer" className="text-[10px] font-black text-blue-800 underline uppercase">{enterprise.website || '离线状态'}</a>
                   </div>
                 </div>
               </div>
@@ -454,23 +476,23 @@ const EnterpriseDetailPageV2: React.FC = () => {
           {/* Activity Timeline */}
           <div className="lg:col-span-2">
             <NeubrutalCard className="bg-white border-8 border-gray-900 !p-8 shadow-[15px_15px_0px_0px_rgba(0,0,0,1)]">
-              <h3 className="font-black uppercase text-sm mb-8 flex items-center gap-2">
+              <h3 className="font-black uppercase text-sm mb-8 flex items-center gap-2 text-gray-900">
                 <Activity size={18} className="text-red-600" /> 运营活动时间线
               </h3>
               <div className="space-y-6">
                 {[
-                  { date: enterprise.clueUpdateTime?.split('T')[0] || '2025-12-20', event: 'V4.0 战术画像更新', type: '战略升级', user: 'System' },
+                  { date: enterprise.updatedAt?.split('T')[0] || '2025-12-20', event: 'V5.0 战术画像更新', type: '战略升级', user: 'System' },
                   { date: '2025-11-15', event: '线索状态变更为 EMPOWERING', type: '漏斗追踪', user: '分析师' },
-                  { date: '2025-10-02', event: `来源追溯: ${enterprise.clueSource}`, type: '初始录入', user: 'API' },
+                  { date: '2025-10-02', event: `来源追溯: ${enterprise.clueSource || '系统导入'}`, type: '初始录入', user: 'API' },
                 ].map((item, i) => (
                   <div key={i} className="flex gap-6 relative group">
                     {i !== 2 && <div className="absolute left-[19px] top-10 bottom-[-24px] w-1 bg-gray-100 group-hover:bg-blue-100 transition-colors"></div>}
                     <div className="w-10 h-10 rounded-full border-4 border-gray-900 bg-white flex items-center justify-center z-10 shrink-0 group-hover:bg-blue-500 group-hover:text-white transition-all">
-                      <span className="text-[10px] font-black italic">{i+1}</span>
+                      <span className="text-[10px] font-black italic text-gray-900 group-hover:text-white">{i+1}</span>
                     </div>
-                    <div className="flex-1 pb-8">
+                    <div className="flex-1 pb-8 text-gray-900">
                       <div className="flex justify-between items-start mb-1">
-                        <h4 className="font-black text-xs uppercase text-gray-900">{item.event}</h4>
+                        <h4 className="font-black text-xs uppercase">{item.event}</h4>
                         <span className="text-[8px] font-bold text-gray-400">{item.date}</span>
                       </div>
                       <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">操作员: {item.user} // 环节: {item.type}</p>

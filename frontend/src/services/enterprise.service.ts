@@ -1,142 +1,58 @@
-import apiClient from './api';
+import api from './api';
 
 export interface Enterprise {
   id: number;
   enterpriseName: string;
-  feijiangWenxin?: string;
-  clueInTime?: string;
-  clueUpdateTime?: string;
-  partnerLevel?: string;
-  ecoAIProducts?: string;
-  priority?: string;
+  envScope: string;
+  region: string;
+  clueStage: string;
+  industry?: string;
+  city?: string;
+  status?: string;
   base?: string;
-  registeredCapital?: number;
-  employeeCount?: number;
-  enterpriseBackground?: string;
-  industry?: any;
-  taskDirection?: string;
-  contactInfo?: string;
-  usageScenario?: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  created_by?: string;
-  updated_by?: string;
-
-  // V4.0 Fields
-  clueStage?: string;
-  clueSource?: string;
-  clueSourceDetail?: string;
-  isPoweredBy?: boolean;
-  pbAuthInfo?: string;
-  awardStatus?: string;
-  awardTime?: string;
-  awardLocation?: string;
-  certExpiryDate?: string;
-
-  // 企业自身信息完善
-  unifiedSocialCreditCode?: string;
-  legalRepresentative?: string;
-  establishmentDate?: string;
-  enterpriseType?: string;
-  annualRevenue?: string;
-  techStaffCount?: number;
-  isHighTech?: boolean;
-  isSpecialized?: boolean;
-  website?: string;
-  officeAddress?: string;
-
-  // 百度AI技术应用
-  paddleUsageLevel?: string;
-  paddleModels?: any;
-  paddleTrainingType?: string;
-  ernieModelType?: string;
-  ernieAppScenarios?: any;
-  promptTemplateCount?: number;
-  avgMonthlyApiCalls?: string | number;
-  peakApiCalls?: number;
-  inferenceComputeType?: string;
   aiImplementationStage?: string;
-
-  // 生态合作
-  partnerProgramType?: string;
-  baiduCertificates?: any;
-  eventParticipation?: any;
-  jointSolutions?: any;
-  isBaiduVenture?: boolean;
-  trainingRecord?: any;
-  awardsReceived?: any;
-  lastContactDept?: string;
+  shippingStatus?: string;
+  created_at: string;
+  createdAt: string;
+  [key: string]: any;
 }
 
 export interface EnterpriseFilter {
-  search?: string;
-  keyword?: string;
-  feijiangWenxin?: string;
-  clueInTime?: string;
-  clueStage?: string;
-  partnerLevel?: string;
-  priority?: string;
-  industry?: string;
-  taskDirection?: string;
-  base?: string;
-  expiry?: 'soon' | 'all';
-  registeredCapitalMin?: number;
-  registeredCapitalMax?: number;
-  employeeCountMin?: number;
-  employeeCountMax?: number;
-  sort_field?: string;
-  sort_direction?: string;
   page?: number;
   limit?: number;
-}
-
-export interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  searchTerm?: string;
+  region?: string;
+  clueStage?: string;
+  expiry?: string;
+  [key: string]: any;
 }
 
 export const enterpriseApi = {
   // 获取企业列表
-  getEnterprises: (filters?: EnterpriseFilter) => {
-    return apiClient.get<PaginatedResponse<Enterprise>>('/enterprises', { params: filters });
-  },
-
+  getEnterprises: (params?: any) => api.get('/enterprises', { params }),
+  
   // 获取单个企业
-  getEnterprise: (id: number) => {
-    return apiClient.get<Enterprise>(`/enterprises/${id}`);
-  },
-
+  getOne: (id: number) => api.get(`/enterprises/${id}`),
+  getEnterprise: (id: number) => api.get(`/enterprises/${id}`),
+  
+  // 获取企业统计数据
+  getEnterpriseStats: () => api.get('/dashboard/stats'),
+  
   // 创建企业
-  createEnterprise: (data: Partial<Enterprise>) => {
-    return apiClient.post<Enterprise>('/enterprises', data);
-  },
-
+  create: (data: any) => api.post('/enterprises', data),
+  createEnterprise: (data: any) => api.post('/enterprises', data),
+  
   // 更新企业
-  updateEnterprise: (id: number, data: Partial<Enterprise>) => {
-    return apiClient.put<Enterprise>(`/enterprises/${id}`, data);
-  },
-
+  update: (id: number, data: any) => api.put(`/enterprises/${id}`, data),
+  updateEnterprise: (id: number, data: any) => api.put(`/enterprises/${id}`, data),
+  
   // 删除企业
-  deleteEnterprise: (id: number) => {
-    return apiClient.delete(`/enterprises/${id}`);
-  },
-
-  // 获取企业统计
-  getEnterpriseStats: () => {
-    return apiClient.get('/enterprises/stats/summary');
-  },
-
-  // 获取全量地图数据 (V2.0 - Final Stability)
-  getMapData: () => {
-    return apiClient.get<PaginatedResponse<Enterprise>>('/enterprises/action/map-data-full');
-  },
-
-  // 智研闪录：解析文本
-  quickParse: (text: string) => {
-    return apiClient.post('/enterprises/action/parse-unstructured', { text });
-  }
+  delete: (id: number) => api.delete(`/enterprises/${id}`),
+  deleteEnterprise: (id: number) => api.delete(`/enterprises/${id}`),
+  
+  // 智能解析
+  quickParse: (content: string) => api.post('/enterprises/quick-parse', { content }),
+  
+  // 兼容别名
+  getAll: (params?: any) => api.get('/enterprises', { params }),
 };

@@ -1,21 +1,57 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const waitOn = require('wait-on');
 const fs = require('fs');
 
+// 全局捕获主进程未处理的异常
+process.on('uncaughtException', (error) => {
+  console.error('主进程异常:', error);
+  if (app.isReady()) {
+    dialog.showErrorBox('系统启动失败', `核心组件发生错误: \n${error.message}`);
+  }
+});
+
 let backendProcess;
 let splashWindow;
 let mainWindow;
+let startupLog = `[SYSTEM INFO]
+Date: ${new Date().toLocaleString()}
+OS: ${process.platform}
+Arch: ${process.arch}
+----------------------------------
+`;
 
 const isDev = !app.isPackaged;
+
+// 统一日志记录器
+function logTrace(msg) {
+  const entry = `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+  console.log(msg);
+  startupLog += entry;
+}
+
+// 导出日志 IPC
+ipcMain.handle('export-startup-log', async () => {
+  const { filePath } = await dialog.showSaveDialog({
+    title: '导出系统启动日志',
+    defaultPath: path.join(app.getPath('desktop'), 'nexus_error_log.txt'),
+    filters: [{ name: 'Text Files', extensions: ['txt'] }]
+  });
+
+  if (filePath) {
+    fs.writeFileSync(filePath, startupLog);
+    return true;
+  }
+  return false;
+});
 
 function createSplashWindow() {
   splashWindow = new BrowserWindow({
     width: 600,
     height: 400,
     frame: false,
-    transparent: true,
+    transparent: false,
     alwaysOnTop: true,
     webPreferences: {
       nodeIntegration: true,
@@ -24,11 +60,20 @@ function createSplashWindow() {
     backgroundColor: '#000000',
   });
 
-  const splashPath = isDev 
-    ? path.join(__dirname, 'assets/init.html')
-    : path.join(process.resourcesPath, 'assets/init.html');
+  const splashRelativePath = 'assets/init.html';
+  const splashAbsolutePath = path.join(__dirname, splashRelativePath);
   
-  splashWindow.loadFile(splashPath);
+  // 诊断逻辑：如果文件不存在，弹出目录列表
+  if (!fs.existsSync(splashAbsolutePath)) {
+    const dirContent = fs.readdirSync(__dirname);
+    dialog.showErrorBox('资源丢失', `无法找到启动页面: ${splashAbsolutePath}\n当前包内目录: ${dirContent.join(', ')}`);
+  }
+
+  // 使用相对路径加载，Electron 会自动处理 ASAR 寻址
+  splashWindow.loadFile(splashRelativePath).catch(err => {
+    console.error('Splash Load Error:', err);
+    dialog.showErrorBox('界面加载失败', `无法加载启动界面: ${err.message}\n路径: ${splashRelativePath}`);
+  });
 }
 
 function createWindow() {
@@ -40,17 +85,22 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js')
     },
     backgroundColor: '#000000',
-    icon: isDev 
-      ? path.join(__dirname, 'assets/icon.png')
-      : path.join(process.resourcesPath, 'assets/icon.png')
+    icon: path.join(__dirname, 'assets/icon.png')
   });
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:3000');
   } else {
-    mainWindow.loadFile(path.join(__dirname, 'frontend/dist/index.html'));
+    // 生产环境：使用相对路径加载前端静态文件
+    const indexRelativePath = 'frontend/dist/index.html';
+    mainWindow.loadFile(indexRelativePath).catch(err => {
+      console.error('Main Window Load Error:', err);
+      const fullPath = path.join(__dirname, indexRelativePath);
+      dialog.showErrorBox('主界面加载失败', `相对路径: ${indexRelativePath}\n绝对路径: ${fullPath}`);
+    });
   }
 
   mainWindow.once('ready-to-show', () => {
@@ -66,6 +116,8 @@ async function startBackend() {
     ? path.join(__dirname, 'backend/dist/main.js')
     : path.join(process.resourcesPath, 'backend/dist/main.js');
   
+  const backendDir = path.dirname(backendPath);
+  
   const sendStatus = (message, progress) => {
     if (splashWindow && !splashWindow.isDestroyed()) {
       splashWindow.webContents.send('status-update', { message, progress });
@@ -79,75 +131,93 @@ async function startBackend() {
   };
 
   try {
+    logTrace('正在清理环境并校验数据存储...');
     sendStatus('正在清理环境并校验数据存储...', 20);
     
-    // 关键修复：在启动前尝试杀死占用 3001 端口的旧进程
     try {
       if (process.platform === 'darwin' || process.platform === 'linux') {
-        spawn('sh', ['-c', 'lsof -i :3001 | grep LISTEN | awk \'{print $2}\' | xargs kill -9']);
-        console.log('Cleanup existing backend on port 3001');
-        // 给一点点时间让端口释放
-        await new Promise(resolve => setTimeout(resolve, 500));
+        const cleanup = spawn('pkill', ['-f', 'backend/dist/main.js']);
+        await Promise.race([
+          new Promise(resolve => cleanup.on('close', resolve)),
+          new Promise(resolve => setTimeout(resolve, 2000))
+        ]);
+        logTrace('已尝试清理旧的后端进程');
       }
     } catch (e) {
-      console.warn('Cleanup failed (maybe no process was running):', e);
+      logTrace(`进程清理跳过: ${e.message}`);
     }
 
     const userDataPath = app.getPath('userData');
-    const dbPath = path.join(userDataPath, 'nexus_desktop.db');
+    const absoluteDbPath = path.resolve(userDataPath, 'nexus_desktop.db');
+    startupLog += `DB_PATH: ${absoluteDbPath}\n`;
     
     if (!fs.existsSync(userDataPath)) {
-      fs.mkdirSync(userDataPath, { recursive: true });
+      try {
+        fs.mkdirSync(userDataPath, { recursive: true });
+        logTrace(`创建用户数据目录: ${userDataPath}`);
+      } catch (e) {
+        throw new Error(`无法创建用户数据目录: ${e.message}`);
+      }
     }
 
-    if (!fs.existsSync(dbPath)) {
-      sendStatus('正在准备演示数据库 (首次启动需较长时间)...', 40);
+    if (!fs.existsSync(absoluteDbPath)) {
+      sendStatus('正在准备演示数据库 (首次启动)...', 40);
+      logTrace('正在从资源目录拷贝初始数据库...');
       
       let dbSource = isDev
         ? path.join(__dirname, 'backend/prisma/nexus_desktop.db')
         : path.join(process.resourcesPath, 'backend/prisma/nexus_desktop.db');
       
       if (fs.existsSync(dbSource)) {
-        fs.copyFileSync(dbSource, dbPath);
-        console.log('Database initialized at:', dbPath);
+        try {
+          fs.copyFileSync(dbSource, absoluteDbPath);
+          fs.chmodSync(absoluteDbPath, 0o666);
+          logTrace('数据库文件拷贝并提权成功');
+        } catch (e) {
+          throw new Error(`数据库初始化失败: ${e.message}`);
+        }
       } else {
-        throw new Error(`找不到预置数据库文件: ${dbSource}`);
+        logTrace(`警告: 找不到预置库源 ${dbSource}`);
       }
     }
 
     sendStatus('正在启动联图智研后端引擎...', 60);
-    console.log(`Backend path: ${backendPath}`);
+    logTrace(`启动后端进程: ${backendPath}`);
     
     const backendNodeModules = isDev
       ? path.join(__dirname, 'backend/node_modules')
       : path.join(process.resourcesPath, 'backend/node_modules');
     
     backendProcess = spawn(process.execPath, [backendPath], {
-      cwd: path.dirname(backendPath),
+      cwd: backendDir,
       env: { 
         ...process.env, 
         ELECTRON_RUN_AS_NODE: '1',
-        DATABASE_URL: `file:${dbPath}`,
-        NODE_PATH: backendNodeModules
+        DATABASE_URL: `file:${absoluteDbPath}`,
+        NODE_PATH: backendNodeModules,
+        PORT: '3001',
+        NODE_ENV: 'production'
       }
     });
 
-    let backendLog = '';
-    backendProcess.stdout.on('data', (data) => {
+    const updateLog = (data) => {
       const msg = data.toString();
-      console.log(`[Backend]: ${msg}`);
-      backendLog += msg;
-    });
+      startupLog += msg;
+      
+      if (msg.toLowerCase().includes('fault') || msg.toLowerCase().includes('denied') || msg.toLowerCase().includes('error')) {
+        sendError('核心组件访问受限 (Security_Access_Fault)', startupLog);
+        // 发生严重错误时，尝试静默保存一份到 userData
+        try { fs.writeFileSync(path.join(userDataPath, 'startup_crash.log'), startupLog); } catch(e) {}
+      }
+    };
 
-    backendProcess.stderr.on('data', (data) => {
-      const msg = data.toString();
-      console.error(`[Backend ERROR]: ${msg}`);
-      backendLog += msg;
-    });
+    backendProcess.stdout.on('data', updateLog);
+    backendProcess.stderr.on('data', updateLog);
 
     backendProcess.on('exit', (code) => {
       if (code !== 0 && code !== null) {
-        sendError('后端引擎异常退出', backendLog);
+        logTrace(`后端异常退出，退出码: ${code}`);
+        sendError('后端引擎异常退出', startupLog);
       }
     });
 

@@ -278,7 +278,7 @@ const LoginPage: React.FC = () => {
             <div className="space-y-10">
               <div className="space-y-4">
                 <h2 className="text-white text-5xl font-black italic tracking-tighter leading-[0.8]">
-                  1,245<br />NODES
+                  512<br />NODES
                 </h2>
                 <div className="h-3 w-24 bg-yellow-400"></div>
                 <p className="text-blue-100 text-xl font-bold leading-relaxed italic tracking-tight">
@@ -319,7 +319,7 @@ const LoginPage: React.FC = () => {
         <div className="flex gap-16">
           <div className="flex flex-col">
             <span className="font-black text-blue-400 mb-1">TERMINAL_ID</span>
-            <p className="text-blue-100">LIANTU_NEXUS_OS_V3.0</p>
+            <p className="text-blue-100">LIANTU_NEXUS_OS_V5.0</p>
           </div>
           <div className="flex flex-col border-l border-white/20 pl-8">
             <span className="font-black text-blue-400 mb-1">NETWORK_UPLINK</span>

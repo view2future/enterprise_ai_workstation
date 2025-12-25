@@ -34,6 +34,7 @@ import { VeracityHUD } from '../veracity/VeracityHUD';
 import { TaskMonitor } from '../veracity/TaskMonitor';
 import { NexusLogo } from '../ui/neubrutalism/NexusLogo';
 import QuickIngestModal from '../enterprises/QuickIngestModal';
+import GeekPandaCursor from '../common/GeekPandaCursor';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -108,6 +109,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="flex h-screen bg-gray-100 font-sans overflow-hidden">
+      <GeekPandaCursor />
       <CommandCenter />
       <HUDNotes />
       <CommandPalette />
@@ -148,7 +150,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 exit={{ opacity: 0, x: -20 }}
                 className="text-xl font-black uppercase tracking-tighter leading-tight whitespace-nowrap"
               >
-                联图<br/><span className="text-blue-400 font-mono tracking-widest text-sm">NEXUS v3.0</span>
+                联图<br/><span className="text-blue-400 font-mono tracking-widest text-sm">NEXUS v5.0</span>
               </motion.h1>
             )}
           </AnimatePresence>

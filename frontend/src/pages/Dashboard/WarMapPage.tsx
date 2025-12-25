@@ -52,8 +52,12 @@ const WarMapPage: React.FC = () => {
 
   const activeCities = useMemo(() => {
     // 从后端 stats 中获取活跃城市及其统计
-    const rawCities = (stats as any)?.activeCities || [];
-    const regionStats = stats?.regionStats || [];
+    const rawCities = (stats as any)?.activeCities;
+    const regionStats = (stats as any)?.regionStats || [];
+
+    if (!Array.isArray(rawCities)) {
+      return [];
+    }
 
     // 创建一个映射表以便快速查找城市企业数
     const cityCountMap: Record<string, number> = {};
@@ -160,7 +164,17 @@ const WarMapPage: React.FC = () => {
   const markersData = useMemo(() => {
     if (!Array.isArray(enterprises)) return [];
     return enterprises.map(ent => {
-      const base = ent.base || '成都';
+      // 优先使用数据库中精确的经纬度 (数据库存的是 lat, lng)
+      // 高德地图需要的格式是 [lng, lat]
+      if (ent.longitude && ent.latitude) {
+        return {
+          ...ent,
+          coords: [ent.longitude, ent.latitude] as [number, number]
+        };
+      }
+
+      // 如果数据库没有坐标，则回退到城市中心点加随机偏移
+      const base = ent.base || ent.city || '成都';
       const center = cityCoords[base] || cityCoords['成都'];
       return {
         ...ent,

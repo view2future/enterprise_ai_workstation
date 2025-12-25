@@ -92,17 +92,24 @@
     </div>
     
     <div class="error-container" id="errorContainer">
-      <div class="error-title">演示环境初始化错误</div>
-      <div class="error-log" id="errorLog"></div>
-      <div style="margin-top:10px; font-size:11px; color:#888;">
-        提示: 如果由于 macOS 安全限制无法运行，请尝试在 Finder 中右键点击应用选择“打开”。
+      <div class="error-title">系统初始化故障 (Security/Access Fault)</div>
+      <div class="error-log" id="errorLog" style="background: #1a1a1a; padding: 10px; border-radius: 4px; border: 1px solid #333;"></div>
+      <div style="margin-top:15px; font-size:12px; color:#aaa; line-height: 1.6;">
+        <strong style="color: #ff4d4f;">调试建议:</strong><br>
+        1. 检查是否在 <strong>Finder</strong> 中右键点击并选择“打开”。<br>
+        2. 确保应用有权访问 <code>~/Library/Application Support</code> 目录。<br>
+        3. 如果提示权限错误，请尝试在终端执行: <code>xattr -cr /Applications/联图Nexus.app</code>
       </div>
-      <button class="retry-btn" onclick="window.location.reload()">重试</button>
+      <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <button class="retry-btn" onclick="window.location.reload()">重新初始化</button>
+        <button class="retry-btn" style="background: #444;" onclick="exportLogFile()">导出日志文件</button>
+        <button class="retry-btn" style="background: #444;" onclick="copyLog()">复制日志</button>
+      </div>
     </div>
   </div>
 
   <script>
-    const { ipcRenderer } = require('electron');
+    const { ipcRenderer, clipboard } = require('electron');
     
     ipcRenderer.on('status-update', (event, { message, progress }) => {
       document.getElementById('status').innerText = message;
@@ -113,8 +120,25 @@
       document.getElementById('status').innerText = '初始化失败';
       document.getElementById('status').style.color = '#ff4d4f';
       document.getElementById('errorContainer').style.display = 'block';
-      document.getElementById('errorLog').innerText = log || message;
+      document.getElementById('errorLog').innerText = (message + '\n\n--- 详细日志 ---\n' + (log || '无详细日志'));
     });
+
+    async function exportLogFile() {
+      const success = await ipcRenderer.invoke('export-startup-log');
+      if (success) alert('日志已成功保存到桌面。');
+    }
+
+    function copyLog() {
+      const logText = document.getElementById('errorLog').innerText;
+      // 简单实现复制
+      const el = document.createElement('textarea');
+      el.value = logText;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      alert('日志已复制到剪贴板');
+    }
   </script>
 </body>
 </html>

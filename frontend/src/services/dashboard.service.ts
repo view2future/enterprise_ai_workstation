@@ -24,6 +24,8 @@ export interface ChartData {
   starPartners?: Array<any>;
   capitalDistribution?: Array<{ registeredCapital: string; _count: { _all: number } }>;
   monthlyTrendData: Array<{ month: string; count: number }>;
+  scenarioTasks?: Array<{ subject: string; value: number }>;
+  scaleMatrix?: Array<{ x: number; y: number; z: number; name: string; id: number; priority: string }>;
 }
 
 export interface Activity {

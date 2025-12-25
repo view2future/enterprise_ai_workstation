@@ -1,51 +1,82 @@
-import { Controller, Get, HttpCode, HttpStatus, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Query, Request, HttpCode, HttpStatus } from '@nestjs/common';
 import { DashboardService } from '../services/dashboard.service';
+import { PolicyService } from '../services/policy.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
 
 @Controller('dashboard')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class DashboardController {
-  constructor(private readonly dashboardService: DashboardService) {}
-
-  @Get('map-data')
-  @HttpCode(HttpStatus.OK)
-  async getMapData(@Request() req) {
-    return this.dashboardService.getMapData(req.user.envScope);
-  }
+  constructor(
+    private readonly dashboardService: DashboardService,
+    private readonly policyService: PolicyService,
+  ) {}
 
   @Get('stats')
-  @HttpCode(HttpStatus.OK)
-  async getStats(@Query('timeRange') timeRange: string, @Request() req) {
-    return this.dashboardService.getStats(timeRange, req.user.envScope, req.user);
+  async getStats(@Request() req) {
+    const envScope = req.user.envScope || 'PROD';
+    return this.dashboardService.getStats(envScope);
   }
 
-  @Get('charts')
-  @HttpCode(HttpStatus.OK)
-  async getChartData(@Query('timeRange') timeRange: string, @Request() req) {
-    return this.dashboardService.getChartData(timeRange, req.user.envScope);
+  @Get('advanced-stats')
+  async getAdvancedStats(@Request() req) {
+    const envScope = req.user.envScope || 'PROD';
+    return this.dashboardService.getAdvancedStats(envScope);
   }
 
   @Get('overview')
-  @HttpCode(HttpStatus.OK)
   async getOverview(@Query('timeRange') timeRange: string, @Request() req) {
+    const envScope = req.user.envScope || 'PROD';
     const [stats, chartData, recentActivities] = await Promise.all([
-      this.dashboardService.getStats(timeRange, req.user.envScope, req.user),
-      this.dashboardService.getChartData(timeRange, req.user.envScope),
-      this.dashboardService.getRecentActivities(timeRange, req.user.envScope),
+      this.dashboardService.getStats(envScope),
+      this.dashboardService.getChartData(timeRange, envScope),
+      this.dashboardService.getRecentActivities(timeRange, envScope),
     ]);
-
     return { stats, chartData, recentActivities, timestamp: new Date().toISOString() };
   }
 
+  @Get('charts')
+  async getCharts(@Query('timeRange') timeRange: string, @Request() req) {
+    const envScope = req.user.envScope || 'PROD';
+    return this.dashboardService.getChartData(timeRange, envScope);
+  }
+
+  @Get('map-data')
+  async getMapData(@Request() req) {
+    const envScope = req.user.envScope || 'PROD';
+    return this.dashboardService.getMapData(envScope);
+  }
+
   @Get('tech-radar')
-  @HttpCode(HttpStatus.OK)
   async getTechRadar(@Request() req) {
-    return this.dashboardService.getTechRadarData(req.user.envScope);
+    const envScope = req.user.envScope || 'PROD';
+    return this.dashboardService.getTechRadarData(envScope);
   }
 
   @Get('ecosystem')
-  @HttpCode(HttpStatus.OK)
   async getEcosystem(@Request() req) {
-    return this.dashboardService.getEcosystemHealthData(req.user.envScope);
+    const envScope = req.user.envScope || 'PROD';
+    return this.dashboardService.getEcosystemHealthData(envScope);
+  }
+
+  @Get('usage')
+  @Roles('SUPER_ADMIN')
+  async getUsage() {
+    return this.dashboardService.getFeatureUsage();
+  }
+
+  @Post('policies/analyze-url')
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  @HttpCode(HttpStatus.OK)
+  async analyzePolicyUrl(@Body('url') url: string, @Request() req) {
+    const envScope = req.user.envScope || 'PROD';
+    const userId = req.user.id || req.user.userId || req.user.sub;
+    return this.policyService.analyzePolicyFromUrl(url, envScope, userId);
+  }
+
+  @Get('policies/mindmap')
+  async getPolicyMindMap(@Query('id') id: string) {
+    return this.policyService.getPolicyMindMap(parseInt(id));
   }
 }

@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "darwin-arm64"]
@@ -11,234 +9,184 @@ datasource db {
 }
 
 model User {
-  id            Int            @id @default(autoincrement())
-  username      String         @unique
-  email         String         @unique
+  id            Int              @id @default(autoincrement())
+  username      String           @unique
+  email         String           @unique
   password      String
   firstName     String?
   lastName      String?
-  role          String         @default("NEURON") // ARCHITECT, CORTEX, GANGLION, NEURON
-  department    String         @default("GENERAL") // 对应 Ganglion 的节点名称
-  region        String?        @default("SW")      // 宏观区域：SW(西南), CN(华北), CS(华南), CE(华东), CC(华中)
-  status        String         @default("active")
-  envScope      String         @default("PROD")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  
-  // 层级关系：上级领导
+  role          String           @default("NEURON")
+  department    String           @default("GENERAL")
+  region        String?          @default("SW")
+  status        String           @default("active")
+  envScope      String           @default("PROD")
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
   managerId     Int?
-  manager       User?          @relation("UserHierarchy", fields: [managerId], references: [id])
-  subordinates  User[]         @relation("UserHierarchy")
-
   auditLogs     AuditLog[]
-  veracityTasks VeracityTask[]
-  enterprises   Enterprise[]   @relation("EnterpriseOwner")
   comments      Comment[]
+  enterprises   Enterprise[]     @relation("EnterpriseOwner")
+  notifications Notification[]
+  logs          SystemUsageLog[]
+  manager       User?            @relation("UserHierarchy", fields: [managerId], references: [id])
+  subordinates  User[]           @relation("UserHierarchy")
+  veracityTasks VeracityTask[]
 
   @@map("users")
 }
 
 model Enterprise {
-  id                Int      @id @default(autoincrement())
-  enterpriseName    String   @unique @map("企业名称")
-  envScope          String   @default("PROD") @map("环境域")
-  feijiangWenxin    String?  @map("飞桨_文心")
-  
-  // V5.0 战术地图核心坐标
-  latitude          Float?   @map("纬度")
-  longitude         Float?   @map("经度")
-  region            String?  @default("SW") @map("所属区域") // SW, CN, CS, CE, CC
-  
-  // V5.0 权限归属
-  ownerId           Int?     @map("负责人ID")
-  owner             User?    @relation("EnterpriseOwner", fields: [ownerId], references: [id])
-
-  // V4.0 线索漏斗增强
-  clueStage         String   @default("LEAD") @map("线索阶段") // LEAD, EMPOWERING, ADOPTED, ECO_PRODUCT, POWERED_BY, CASE_STUDY
-  clueSource        String?  @map("线索来源") // PHONE, EVENT, ASSOCIATION, PARTNER, GOV
-  clueSourceDetail  String?  @map("来源详情") // 记录活动名称、介绍人姓名等
-  clueInTime        String?  @map("线索入库时间")
-  clueUpdateTime    DateTime? @map("线索更新时间")
-  
-  // V4.0 品牌授权 (Powered By)
-  isPoweredBy       Boolean  @default(false) @map("是否品牌授权")
-  pbAuthInfo        String?  @map("PB授权详情") // 存储授权产品范围、级别
-  
-  // V4.0 授牌与资质管理
-  partnerLevel      String?  @map("伙伴等级")
-  awardStatus       String?  @default("未授牌") @map("授牌状态") // 已授牌 / 未授牌
-  awardTime         DateTime? @map("授牌时间")
-  awardLocation     String?  @map("授牌地点")
-  certExpiryDate    DateTime? @map("证书有效期至") // 核心：用于提前3个月预警
-  
-  // V4.0 物流与履约管控
-  shippingStatus    String?  @default("PENDING") @map("寄送状态") // PENDING, SHIPPED, RECEIVED
-  trackingNumber    String?  @map("快递单号")
-  logisticsNotes    String?  @map("物流备注")
-  receiptStatus     String?  @default("NOT_RECEIVED") @map("查收状态")
-  lastRenewalDate   DateTime? @map("最近更新日期")
-
-  ecoAIProducts     String?  @map("生态AI产品")
-  priority          String?  @map("优先级")
-  base              String?  @map("base")
-  registeredCapital BigInt?  @map("注册资本")
-  employeeCount     Int?     @map("参保人数")
-  enterpriseBackground String? @map("企业背景")
-  industry          String?    @map("行业")
-  taskDirection     String?  @map("任务方向")
-  contactInfo       String?  @map("联系人信息")
-  usageScenario     String?  @map("使用场景")
-  status            String   @default("active")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  createdBy         String?
-  updatedBy         String?
-
-  // 企业画像补充
-  unifiedSocialCreditCode String?   @map("统一社会信用代码")
-  legalRepresentative     String?   @map("法定代表人")
-  establishmentDate       DateTime? @map("成立日期")
-  enterpriseType          String?   @map("企业类型")
-  annualRevenue           String?   @map("年度营收规模")
-  techStaffCount          Int?      @map("技术研发人数")
-  isHighTech              Boolean?  @default(false) @map("是否高新企业")
-  isSpecialized           Boolean?  @default(false) @map("是否专精特新")
-  website                 String?   @map("公司官网")
-  officeAddress           String?   @map("详细办公地址")
-
-  // 技术矩阵
-  paddleUsageLevel        String?   @map("飞桨应用深度")
-  paddleModels            String?     @map("飞桨具体模型")
-  paddleTrainingType      String?   @map("飞桨训练模式")
-  ernieModelType          String?   @map("文心大模型版本")
-  ernieAppScenarios       String?     @map("文心应用场景")
-  promptTemplateCount     Int?      @default(0) @map("提示词模板数")
-  avgMonthlyApiCalls      BigInt?   @default(0) @map("月均API调用量")
-  peakApiCalls            Int?      @default(0) @map("峰值并发量")
-  inferenceComputeType    String?   @map("推理算力类型")
-  aiImplementationStage   String?   @map("AI落地阶段")
-
-  // 更多合作细节
-  baiduCertificates       String?     @map("百度AI认证证书")
-  eventParticipation      String?     @map("参与活动记录")
-  jointSolutions          String?     @map("联合解决方案")
-  isBaiduVenture          Boolean?  @default(false) @map("百度是否投资")
-  trainingRecord          String?     @map("技术培训记录")
-  awardsReceived          String?     @map("获奖记录")
-  lastContactDept         String?   @map("百度最近对接部门")
-
-  // 数据审计
-  dataIntegrityHash       String?   @map("数据完整性哈希")
-  lastAuditTime           DateTime? @map("最后审计时间")
-  isArchived              Boolean   @default(false) @map("是否已归档")
-  dataSourceType          String?   @default("manual") @map("数据来源")
-  
-  // 真值校验
-  isVerified              Boolean   @default(false) @map("是否已真值校验")
-  veracityScore           Int       @default(0) @map("真值置信度")
-  lastVeracityCheck       DateTime? @map("最后校验时间")
-  evidenceChain           String?     @map("证据链数据")
-  
-  comments                Comment[]
+  id                      Int       @id @default(autoincrement())
+  enterpriseName          String    @unique
+  envScope                String    @default("PROD")
+  feijiangWenxin          String?
+  latitude                Float?
+  longitude               Float?
+  region                  String?   @default("SW")
+  ownerId                 Int?
+  clueStage               String    @default("LEAD")
+  clueSource              String?
+  clueSourceDetail        String?
+  clueInTime              String?
+  industry                String?
+  city                    String?
+  registeredCapital       Float?
+  establishDate           String?
+  techStack               String?
+  partnerLevel            String?
+  status                  String?   @default("active")
+  priority                String?
+  unifiedSocialCreditCode String?
+  base                    String?
+  employeeCount           Int?
+  enterpriseBackground    String?
+  taskDirection           String?
+  contactInfo             String?
+  usageScenario           String?
+  clueUpdateTime          DateTime?
+  ecoAIProducts           String?
+  certExpiryDate          DateTime?
+  legalRepresentative     String?
+  establishmentDate       DateTime?
+  enterpriseType          String?
+  officeAddress           String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  certStatus              String?   @default("PENDING")
+  shippingStatus          String?   @default("NOT_SHIPPED")
+  trackingNumber          String?
+  owner                   User?     @relation("EnterpriseOwner", fields: [ownerId], references: [id])
 
   @@map("enterprises")
 }
 
-model Policy {
-  id                Int       @id @default(autoincrement())
-  title             String    @map("政策标题")
-  officialId        String?   @unique @map("发文号")
-  category          String?   @map("政策类别") // 资金类, 资质类, 资源类
-  sourceUrl         String?   @map("原文链接")
-  content           String?   @map("政策原文")
-  analysis          String?   @map("AI结构化解析") // 存储脑图 JSON
-  supportIntensity  String?   @map("扶持力度")
-  applyStartDate    DateTime? @map("申报开始时间")
-  applyEndDate      DateTime? @map("申报截止时间")
-  targetIndustries  String?   @map("面向行业")
-
-  // V5.0 Nexus Commander 新增
-  publishCity       String?   @map("发布城市")
-  publishYear       Int?      @map("发布年份")
-  industryTags      String?   @map("行业标签") // 逗号分隔
-  summary           String?   @map("AI摘要")
-  mindMapJson       String?   @map("脑图JSON")
-  rawContent        String?   @map("清洗后全文")
-  originalUrl       String?   @map("来源URL")
-  processStatus     String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
-
-  status            String    @default("active")
-  envScope          String    @default("PROD") @map("环境域")
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  comments          Comment[]
-
-  @@map("policies")
-}
-
 model AuditLog {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  user        User     @relation(fields: [userId], references: [id])
-  action      String   // CREATE, UPDATE, DELETE, SYNC_IMPORT
-  entityType  String   // Enterprise, Report, Policy
-  entityId    Int?
-  details     String?  // 操作描述
-  oldValue    String?
-  newValue    String?
-  timestamp   DateTime @default(now())
-  ipAddress   String?
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  action    String
+  module    String
+  details   String?
+  oldValue  String?
+  newValue  String?
+  timestamp DateTime @default(now())
+  ipAddress String?
+  user      User     @relation(fields: [userId], references: [id])
 
   @@map("audit_logs")
 }
 
 model VeracityTask {
-  id            String   @id @default(uuid())
-  targetName    String
-  status        String   @default("PENDING") 
-  progress      Int      @default(0)
-  step          String?
-  resultData    String?
-  envScope      String   @default("PROD")
-  userId        Int
-  user          User     @relation(fields: [userId], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id         String   @id @default(uuid())
+  targetName String
+  status     String   @default("PENDING")
+  progress   Int      @default(0)
+  step       String?
+  resultData String?
+  envScope   String   @default("PROD")
+  userId     Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id])
 
   @@map("veracity_tasks")
 }
 
 model Report {
-  id             Int       @id @default(autoincrement())
-  title          String
-  type           String
-  format         String
-  status         String    @default("pending")
-  description    String?
-  filters        String?
-  configuration  String?
-  filePath       String?
-  fileName       String?
-  dataCount      Int       @default(0)
-  progress       Int       @default(0)
-  password       String?   // V4.0 新增：用于加密报告访问
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  completedAt    DateTime?
-  createdBy      String?
-  errorMessage   String?
-  envScope       String    @default("PROD") @map("环境域")
-  
+  id            Int       @id @default(autoincrement())
+  title         String
+  type          String
+  format        String
+  status        String    @default("pending")
+  description   String?
+  filters       String?
+  configuration String?
+  filePath      String?
+  fileName      String?
+  dataCount     Int       @default(0)
+  progress      Int       @default(0)
+  password      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  completedAt   DateTime?
+  createdBy     String?
+  errorMessage  String?
+  envScope      String    @default("PROD")
+
   @@map("reports")
+}
+
+model KnowledgeBase {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  category  String
+  tags      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("knowledge_bases")
+}
+
+model SystemConfig {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_configs")
+}
+
+model Policy {
+  id            Int      @id @default(autoincrement())
+  title         String
+  content       String
+  type          String
+  level         String
+  category      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  publishCity   String?
+  publishYear   Int?
+  industryTags  String?
+  summary       String?
+  mindMapString String?
+  originalUrl   String?
+  processStatus String   @default("PENDING")
+  status        String   @default("ACTIVE")
+  envScope      String   @default("PROD")
+
+  @@map("policies")
 }
 
 model SystemUsageLog {
   id        Int      @id @default(autoincrement())
-  endpoint  String   // 例如 /enterprises/create
-  method    String   // POST, GET
+  endpoint  String
+  method    String
   userId    Int?
   timestamp DateTime @default(now())
-  
+  user      User?    @relation(fields: [userId], references: [id])
+
   @@map("system_usage_logs")
 }
 
@@ -246,20 +194,25 @@ model Comment {
   id           Int      @id @default(autoincrement())
   content      String
   authorId     Int
-  user         User     @relation(fields: [authorId], references: [id])
-  
-  // 关联目标
-  targetType   String   // 'ENTERPRISE', 'POLICY'
-  
-  // 这里的 targetId 是逻辑关联，不设外键强约束，或者使用多态关联（Prisma 不直接支持，通常用两个可选字段）
-  enterpriseId Int?
-  enterprise   Enterprise? @relation(fields: [enterpriseId], references: [id])
-  
-  policyId     Int?
-  policy       Policy? @relation(fields: [policyId], references: [id])
-
-  mentionedIds String?  // 存储被@的用户ID数组，如 "[1, 5]"
+  targetType   String
+  targetId     Int
+  mentionedIds String?
   createdAt    DateTime @default(now())
-  
+  author       User     @relation(fields: [authorId], references: [id])
+
   @@map("comments")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String
+  title     String
+  content   String
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
 }

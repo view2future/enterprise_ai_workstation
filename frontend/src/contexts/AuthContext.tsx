@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi, User } from '../services/auth.service';
-import axios from 'axios';
 
 interface AuthContextType {
   user: User | null;
@@ -22,34 +21,33 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(localStorage.getItem('nexus_token'));
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
+    const storedToken = localStorage.getItem('nexus_token');
     if (storedToken) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
       authApi.getProfile()
         .then(res => {
-          console.log('[AUTH] Profile Restored:', res.data.username, '| Env:', res.data.envScope);
+          console.log('[AUTH] Session Verified:', res.data.username);
           setUser(res.data);
         })
-        .catch(() => logout());
+        .catch((err) => {
+          console.warn('[AUTH] Session Invalid:', err.message);
+          logout();
+        });
     }
   }, []);
 
   const handleLoginSuccess = (access_token: string, userData: User) => {
-    // 强制清理历史残留，确保新环境 100% 纯净
-    localStorage.clear();
+    // 写入统一的键名
+    localStorage.setItem('nexus_token', access_token);
+    localStorage.setItem('nexus_user', JSON.stringify(userData));
     
-    localStorage.setItem('token', access_token);
     setToken(access_token);
     setUser(userData);
     
-    // 立即更新当前请求实例的 Header
-    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-    
-    console.log('[AUTH] Login Session Established:', userData.envScope);
+    console.log('[AUTH] Login Success, Navigating to Dashboard...');
     navigate('/dashboard');
   };
 
@@ -64,8 +62,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
-    localStorage.clear();
-    delete axios.defaults.headers.common['Authorization'];
+    localStorage.removeItem('nexus_token');
+    localStorage.removeItem('nexus_user');
     setUser(null);
     setToken(null);
     navigate('/login');

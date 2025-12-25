@@ -39,7 +39,7 @@ async function main() {
     await prisma.enterprise.deleteMany({});
     await prisma.user.deleteMany({});
   } catch (e) {
-    console.warn('清理过程遇到轻微阻碍（可能是首次运行），继续执行...');
+    console.warn('清理过程遇到轻微阻碍，继续执行...');
   }
 
   console.log('👤 正在创建初始用户...');
@@ -49,7 +49,7 @@ async function main() {
   await prisma.user.create({
     data: {
       username: 'demo_commander',
-      email: 'demo@nexus.ai',
+      email: 'demo@example.com',
       password: hashedPassword,
       firstName: 'Tactical',
       lastName: 'Demo',
@@ -89,7 +89,7 @@ async function main() {
     const tech = Math.random() > 0.5 ? '飞桨' : '文心';
     const isP0 = i % 10 === 0; // 10% P0
     const stage = i % 4 === 0 ? '全面生产' : (i % 3 === 0 ? '试点运行' : '需求调研');
-    const createdAt = getRandomDate(365); // 覆盖过去一年
+    const createdAt = getRandomDate(365);
     const randomCity = cities[Math.floor(Math.random() * cities.length)];
 
     enterprises.push({
@@ -98,32 +98,24 @@ async function main() {
       priority: isP0 ? 'P0' : (i % 3 === 0 ? 'P1' : 'P2'),
       partnerLevel: isP0 ? '认证级' : '无',
       base: randomCity,
-      registeredCapital: BigInt(Math.floor(Math.random() * 50000000)),
+      registeredCapital: Math.floor(Math.random() * 50000000),
       employeeCount: Math.floor(Math.random() * 1000) + 20,
-      aiImplementationStage: stage,
-      ernieModelType: tech === '文心' ? (isP0 ? 'ERNIE 4.0' : 'ERNIE 3.5') : null,
-      paddleUsageLevel: tech === '飞桨' ? (isP0 ? '深度定制' : '基础调用') : null,
-      avgMonthlyApiCalls: BigInt(Math.floor(Math.random() * 5000000)),
+      usageScenario: stage,
       unifiedSocialCreditCode: `91510100SC${100000 + i}X`,
-      isHighTech: Math.random() > 0.4,
-      isSpecialized: isP0,
-      industry: JSON.stringify(industries[i % industries.length]),
+      industry: (industries[i % industries.length]).name,
       createdAt: createdAt,
       updatedAt: createdAt,
       status: 'active',
-      dataSourceType: 'master_seed',
       envScope: 'DEMO'
     });
   }
 
-  // Explicitly add key enterprises for Demo
+  // Explicitly add key enterprises for PROD/DEMO mix
   const keyEnterprises = [
     { name: '重庆赛力斯汽车', city: '重庆', industry: '新能源汽车', priority: 'P0' },
     { name: '西安隆基绿能', city: '西安', industry: '光伏太阳能', priority: 'P0' },
     { name: '昆明嘉和科技', city: '昆明', industry: '工业互联网', priority: 'P1' },
     { name: '贵阳满帮集团', city: '贵阳', industry: '智慧物流', priority: 'P0' },
-    { name: '重庆长安汽车', city: '重庆', industry: '人工智能', priority: 'P0' },
-    { name: '西安华为云', city: '西安', industry: '云计算', priority: 'P0' },
     { name: '宜宾五粮液数字科技', city: '宜宾', industry: '智慧零售', priority: 'P0' },
     { name: '绵阳长虹电子', city: '绵阳', industry: '智能家电', priority: 'P0' }
   ];
@@ -132,32 +124,31 @@ async function main() {
     enterprises.push({
       enterpriseName: comp.name,
       base: comp.city,
-      industry: JSON.stringify({ name: comp.industry, sub: '核心业务' }),
+      industry: comp.industry,
       priority: comp.priority,
       status: 'active',
-      envScope: 'PROD',
+      envScope: 'DEMO', // Ensure they show up in Demo
       feijiangWenxin: Math.random() > 0.5 ? '飞桨' : '文心',
-      aiImplementationStage: '落地应用',
+      usageScenario: '落地应用',
       partnerLevel: '核心级',
-      clueStage: '商机转化',
+      clueStage: 'ADOPTED',
       createdAt: new Date(),
-      updatedAt: new Date(),
-      // Add required fields
-      isPoweredBy: true,
-      pbAuthInfo: '战略合作伙伴'
+      updatedAt: new Date()
     });
   }
 
   // 分批插入防止超时
   for (let i = 0; i < enterprises.length; i += 100) {
     const batch = enterprises.slice(i, i + 100);
-    await Promise.all(batch.map(ent => prisma.enterprise.create({ data: ent })));
-    console.log(`✅ 已入库 ${Math.min(i + 100, 526)} 条...`);
+    for (const ent of batch) {
+       await prisma.enterprise.create({ data: ent });
+    }
+    console.log(`✅ 已入库 ${Math.min(i + 100, enterprises.length)} 条...`);
   }
 
   const count = await prisma.enterprise.count();
   console.log(`
-🎉 数据库复活成功！当前有效企业数: ${count}`);
+🎉 数据库初始化成功！当前有效企业数: ${count}`);
 }
 
 main()

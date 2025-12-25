@@ -15,6 +15,7 @@ import { SyncModule } from '../modules/sync/sync.module';
 import { VeracityModule } from '../modules/veracity/veracity.module';
 import { CommentsModule } from '../modules/comments/comments.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { NotificationsModule } from '../modules/notifications/notifications.module';
 import { SystemUsageInterceptor } from '../interceptors/system-usage.interceptor';
 
 @Module({
@@ -37,6 +38,7 @@ import { SystemUsageInterceptor } from '../interceptors/system-usage.interceptor
     SyncModule,
     VeracityModule,
     CommentsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

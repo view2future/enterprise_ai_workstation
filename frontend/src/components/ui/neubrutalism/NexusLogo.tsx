@@ -105,20 +105,66 @@ export const NexusLogo: React.FC<NexusLogoProps> = ({
 
       {/* 文字标识升级 */}
       {showText && (
-        <div className="flex flex-col">
-          <div className="flex items-baseline gap-1">
-            <motion.span 
-              animate={{ opacity: [0.8, 1, 0.8] }}
-              transition={breatheTransition}
-              className="font-black italic tracking-tighter text-2xl leading-none text-gray-900"
+        <div className="flex items-center gap-4">
+          {/* 品牌 Mascot: 侧身吃竹子熊猫 (V5.0 精简版) */}
+          <div className="relative w-12 h-12 hidden md:flex items-center justify-center shrink-0">
+            {/* 动态竹子 */}
+            <motion.div
+              animate={{ rotate: [-10, -13, -10] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute left-2 top-1 w-1 h-10 bg-gradient-to-b from-green-400 to-green-600 rounded-full origin-bottom z-10"
             >
-              NEXUS
-            </motion.span>
-            <span className="text-[10px] font-black text-blue-600 italic">v3.0</span>
+              <div className="absolute top-2 -left-2 w-3 h-1 bg-green-500 rounded-full rotate-[-25deg]" />
+              <div className="absolute top-6 -right-2 w-3 h-1 bg-green-500 rounded-full rotate-[25deg]" />
+            </motion.div>
+
+            {/* 侧向攀爬熊猫 */}
+            <motion.div
+              animate={{ y: [0, -1, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              className="relative z-20 translate-x-1"
+            >
+              <svg width="36" height="36" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                {/* 熊猫身体 */}
+                <path d="M 35 90 Q 60 100 85 80 Q 95 60 80 45 Q 65 35 45 45 Z" fill="white" stroke="#1e293b" strokeWidth="4" />
+                <circle cx="82" cy="82" r="10" fill="#0f172a" />
+                <circle cx="45" cy="92" r="8" fill="#0f172a" />
+                <path d="M 30 65 Q 20 60 15 50" fill="none" stroke="#0f172a" strokeWidth="10" strokeLinecap="round" />
+                <circle cx="70" cy="55" r="8" fill="#0f172a" />
+                <circle cx="38" cy="22" r="11" fill="#0f172a" />
+                <circle cx="68" cy="18" r="11" fill="#0f172a" />
+                <g transform="rotate(-8 50 40)">
+                  <circle cx="52" cy="40" r="30" fill="white" stroke="#1e293b" strokeWidth="4" />
+                  <ellipse cx="40" cy="38" rx="11" ry="9" fill="#0f172a" transform="rotate(20 40 38)" />
+                  <ellipse cx="64" cy="35" rx="10" ry="8" fill="#0f172a" transform="rotate(-15 64 35)" />
+                  <circle cx="41" cy="37" r="3" fill="white" />
+                  <circle cx="63" cy="34" r="3" fill="white" />
+                  <motion.path
+                    initial={{ d: "M 42 58 Q 52 62 62 58" }}
+                    animate={{ d: ["M 42 58 Q 52 62 62 58", "M 42 58 Q 52 68 62 58", "M 42 58 Q 52 62 62 58"] }}
+                    transition={{ duration: 0.4, repeat: Infinity }}
+                    stroke="#0f172a" strokeWidth="4" strokeLinecap="round" fill="none"
+                  />
+                </g>
+              </svg>
+            </motion.div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-px w-4 bg-gray-300"></div>
-            <span className="font-mono text-[7px] tracking-[0.4em] text-gray-400 uppercase font-bold">Lantú Intelligence</span>
+
+          <div className="flex flex-col">
+            <div className="flex items-baseline gap-1">
+              <motion.span 
+                animate={{ opacity: [0.8, 1, 0.8] }}
+                transition={breatheTransition}
+                className="font-black italic tracking-tighter text-2xl leading-none text-gray-900"
+              >
+                NEXUS
+              </motion.span>
+              <span className="text-[10px] font-black text-blue-600 italic">v5.0</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-px w-4 bg-gray-300"></div>
+              <span className="font-mono text-[7px] tracking-[0.4em] text-gray-400 uppercase font-bold">Lantú Intelligence</span>
+            </div>
           </div>
         </div>
       )}

@@ -1,186 +1,148 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { lastValueFrom } from 'rxjs';
+import axios from 'axios';
+const cheerio = require('cheerio');
 
 @Injectable()
 export class PolicyService {
   private readonly logger = new Logger(PolicyService.name);
-  private readonly MOONSHOT_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
+  private readonly MOONSHOT_API_KEY = process.env.MOONSHOT_API_KEY;
 
-  constructor(
-    private prisma: PrismaService,
-    private httpService: HttpService,
-    private configService: ConfigService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
-  async createPolicy(data: any, userEnv: string) {
-    // Legacy method support
-    const analysis = data.analysis ? JSON.parse(data.analysis) : this.generateBrainMap(data.content || '');
-    return this.prisma.policy.create({
-      data: {
-        ...data,
-        analysis: JSON.stringify(analysis),
-        envScope: userEnv,
-      },
-    });
+  async analyzePolicyFromUrl(url: string, envScope: string, userId: number) {
+    return this.analyzePolicy(url, envScope);
   }
 
-  async getPolicies(userEnv: string) {
+  async getPolicies(envScope: string) {
     return this.prisma.policy.findMany({
-      where: { envScope: userEnv, status: 'active' },
+      where: { envScope },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async getPolicyDetail(id: number, userEnv: string) {
+  async getPolicyDetail(id: number, envScope: string) {
     const policy = await this.prisma.policy.findFirst({
-      where: { id, envScope: userEnv },
+      where: { id, envScope },
     });
-    if (policy && policy.analysis) {
-      try {
-        policy.analysis = JSON.parse(policy.analysis);
-      } catch (e) {
-        // ignore parse error
-      }
-    }
-    if (policy && policy.mindMapJson) {
-      try {
-        const mindMap = JSON.parse(policy.mindMapJson);
-        // Merge or prefer mindMapJson over analysis if available
-        (policy as any).mindMap = mindMap;
-      } catch (e) {
-        // ignore
-      }
-    }
+    if (!policy) throw new NotFoundException('Policy not found');
     return policy;
   }
 
-  /**
-   * V5.0 Nexus Commander: Intelligent Policy Analysis via LLM
-   */
-  async analyzePolicyFromUrl(url: string, userEnv: string, userId?: number) {
-    this.logger.log(`Starting policy analysis for URL: ${url}`);
+  async analyzePolicy(url: string, envScope: string = 'PROD') {
+    this.logger.log(`Analyzing policy from URL: ${url}`);
     
-    // 1. Fetch Content (Simple simulation/stripping for now)
-    let rawContent = '';
-    try {
-      const response = await lastValueFrom(this.httpService.get(url));
-      rawContent = this.stripHtml(response.data);
-      if (rawContent.length > 8000) rawContent = rawContent.substring(0, 8000) + '...[truncated]';
-    } catch (error) {
-      this.logger.warn(`Failed to fetch URL directly, using placeholder. Error: ${error.message}`);
-      rawContent = `Unable to crawl content from ${url}. Please paste content manually.`;
-    }
-
-    // 2. Call LLM for Analysis
-    let aiResult = await this.callMoonshotLLM(rawContent);
-    
-    // 3. Save to DB
-    const newPolicy = await this.prisma.policy.create({
+    const policy = await this.prisma.policy.create({
       data: {
-        title: aiResult.title || 'Untitled Policy',
-        sourceUrl: url,
-        content: rawContent,
-        summary: aiResult.summary,
-        publishCity: aiResult.publishCity,
-        publishYear: aiResult.publishYear ? parseInt(aiResult.publishYear) : new Date().getFullYear(),
-        industryTags: aiResult.industryTags,
-        mindMapJson: JSON.stringify(aiResult.mindMap),
-        analysis: JSON.stringify(aiResult.mindMap), // Backward compatibility
-        envScope: userEnv,
-        processStatus: 'COMPLETED',
-      },
+        title: 'Pending Analysis...',
+        content: '',
+        type: 'GOVERNMENT',
+        level: 'NATIONAL',
+        originalUrl: url,
+        processStatus: 'PROCESSING',
+        envScope: envScope,
+      }
     });
 
-    return newPolicy;
+    this.runAnalysis(policy.id, url).catch(err => {
+      this.logger.error(`Analysis failed for ${url}: ${err.message}`);
+    });
+
+    return {
+      success: true,
+      message: 'Policy analysis started in background',
+      policyId: policy.id
+    };
   }
 
-  private stripHtml(html: string): string {
-    if (!html) return '';
-    return html.replace(/<[^>]*>?/gm, '');
-  }
-
-  private async callMoonshotLLM(content: string): Promise<any> {
-    const apiKey = this.configService.get<String>('MOONSHOT_API_KEY');
-    if (!apiKey) {
-      this.logger.error('MOONSHOT_API_KEY not found');
-      return this.generateMockResult();
-    }
-
-    const prompt = `
-      You are a Policy Analysis Expert. Analyze the following policy text (which may be raw scraped text) and extract key information.
+  private async runAnalysis(policyId: number, url: string) {
+    try {
+      const response = await axios.get(url);
+      const $ = cheerio.load(response.data);
       
-      Return a STRICT JSON object (no markdown formatting) with the following structure:
-      {
-        "title": "Policy Title",
-        "summary": "A concise summary of the policy (max 200 words)",
-        "publishCity": "City or Region name (e.g., Beijing)",
-        "publishYear": "YYYY",
-        "industryTags": "Comma separated tags (e.g., AI, Manufacturing)",
-        "mindMap": {
-          "nodes": [{"id": "root", "label": "Title", "color": "#3b82f6"}],
-          "links": [{"source": "root", "target": "child"}]
+      $('script').remove();
+      $('style').remove();
+      const content = $('body').text().replace(/\s+/g, ' ').trim().substring(0, 10000);
+      const title = $('title').text() || 'Untitled Policy';
+
+      const aiResult = await this.callKimiAI(content);
+
+      await this.prisma.policy.update({
+        where: { id: policyId },
+        data: {
+          title: aiResult.title || title,
+          content: content,
+          summary: aiResult.summary,
+          publishCity: aiResult.city,
+          publishYear: aiResult.year,
+          industryTags: aiResult.tags,
+          mindMapString: JSON.stringify(aiResult.mindMap),
+          processStatus: 'COMPLETED',
         }
-      }
-
-      For the mindMap, create a simple tree structure showing: Target Audience, Support Measures (Money/Resources), Qualifications, and Timeline.
+      });
       
-      Text to analyze:
-      ${content.substring(0, 5000)}
+      this.logger.log(`Analysis completed for policy ID: ${policyId}`);
+    } catch (error) {
+      await this.prisma.policy.update({
+        where: { id: policyId },
+        data: { processStatus: 'FAILED' }
+      });
+      throw error;
+    }
+  }
+
+  private async callKimiAI(content: string) {
+    const prompt = `
+    请分析以下政策文件内容，提取关键信息。
+    输出格式要求为 JSON，包含以下字段：
+    - title: 政策完整标题
+    - summary: 200字以内的核心摘要
+    - city: 发布的城市（如果没有则填全国）
+    - year: 发布年份（整数）
+    - tags: 适用行业标签（逗号分隔）
+    - mindMap: 脑图结构（包含 nodes 和 edges 的 JSON 对象，用于描述政策层级逻辑）
+
+    内容如下：
+    ${content}
     `;
 
     try {
-      const payload = {
-        model: 'moonshot-v1-8k',
-        messages: [
-            { role: "system", content: "You are a helpful assistant that outputs only JSON." },
-            { role: "user", content: prompt }
-        ],
-        temperature: 0.3,
-      };
-
-      const response = await lastValueFrom(
-        this.httpService.post(this.MOONSHOT_API_URL, payload, {
+      const response = await axios.post(
+        'https://api.moonshot.cn/v1/chat/completions',
+        {
+          model: 'moonshot-v1-8k',
+          messages: [
+            { role: 'system', content: '你是一个专业的政策分析专家。' },
+            { role: 'user', content: prompt }
+          ],
+          response_format: { type: 'json_object' }
+        },
+        {
           headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        })
+            'Authorization': `Bearer ${this.MOONSHOT_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
 
-      const contentStr = response.data.choices[0].message.content;
-      // Clean up markdown code blocks if present
-      const jsonStr = contentStr.replace(/```json/g, '').replace(/```/g, '').trim();
-      return JSON.parse(jsonStr);
-
+      return JSON.parse(response.data.choices[0].message.content);
     } catch (error) {
-      this.logger.error('LLM Call failed', error.response?.data || error.message);
-      return this.generateMockResult();
+      this.logger.error(`AI call failed: ${error.message}`);
+      return {
+        title: 'Analysis Failed',
+        summary: 'Failed to analyze with AI',
+        city: 'Unknown',
+        year: null,
+        tags: '',
+        mindMap: {}
+      };
     }
   }
 
-  private generateMockResult() {
-    return {
-      title: 'AI Policy Analysis (Mock)',
-      summary: 'LLM analysis failed or key missing. This is a placeholder.',
-      publishCity: 'Unknown',
-      publishYear: new Date().getFullYear(),
-      industryTags: 'General',
-      mindMap: this.generateBrainMap(''),
-    };
-  }
-
-  private generateBrainMap(content: string) {
-    return {
-      nodes: [
-        { id: 'root', label: 'Policy Core', color: '#3b82f6', size: 40 },
-        { id: 'target', label: 'Target', color: '#f59e0b', size: 30 },
-      ],
-      links: [
-        { source: 'root', target: 'target' },
-      ]
-    };
+  async getPolicyMindMap(id: number) {
+    const policy = await this.prisma.policy.findUnique({
+      where: { id }
+    });
+    return policy?.mindMapString ? JSON.parse(policy.mindMapString) : null;
   }
 }

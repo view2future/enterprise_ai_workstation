@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ShieldCheck, Search, Terminal, Globe, 
-  CheckCircle2, Loader2, Link as LinkIcon, 
-  ExternalLink, Fingerprint, Lock, ShieldAlert, X,
-  FileText, Clipboard, ChevronLeft, ChevronRight, Minimize2,
-  Table2, Download
+  ShieldCheck, X, Loader2, Link as LinkIcon, Download,
+  Table2, Minimize2
 } from 'lucide-react';
-import axios from 'axios';
+import api from '../../services/api';
 
 interface VeracityHUDProps {
   isOpen: boolean;
@@ -43,12 +40,8 @@ export const VeracityHUD: React.FC<VeracityHUDProps> = ({ isOpen, onClose, enter
 
     const pollInterval = setInterval(async () => {
       try {
-        const token = localStorage.getItem('token');
-        
         // 获取所有活跃任务
-        const activeRes = await axios.get(`${import.meta.env.VITE_API_URL}/veracity/tasks/active`, {
-           headers: { Authorization: `Bearer ${token}` }
-        });
+        const activeRes = await api.get('/veracity/tasks/active');
         const activeTasks = activeRes.data;
         const myActiveTasks = activeTasks.filter((t: any) => trackedTaskIds.includes(t.id));
         
@@ -58,26 +51,20 @@ export const VeracityHUD: React.FC<VeracityHUDProps> = ({ isOpen, onClose, enter
            newProgress[t.id] = t.progress;
            const logEntry = `[${t.targetName}] ${t.step} ... ${t.progress}%`;
            setActiveLog(prev => {
-             // 简单的去重逻辑，避免刷屏
              if (prev.length > 0 && prev[prev.length - 1] === logEntry) return prev;
-             return [...prev, logEntry].slice(-20); // 只保留最近20条
+             return [...prev, logEntry].slice(-20);
            });
         });
         setProgress(newProgress);
 
         if (myActiveTasks.length === 0) {
-           // 所有任务都不在 active 列表中了，说明已全部完成 (或失败)
-           // 获取最终结果
            const finalResults = [];
            for (const id of trackedTaskIds) {
              try {
-               const res = await axios.get(`${import.meta.env.VITE_API_URL}/veracity/tasks/${id}`, {
-                 headers: { Authorization: `Bearer ${token}` }
-               });
+               const res = await api.get(`/veracity/tasks/${id}`);
                if (res.data.status === 'COMPLETED' && res.data.resultData) {
                  finalResults.push(res.data.resultData);
                } else if (res.data.status === 'FAILED') {
-                 // 即使失败也记录一下
                  finalResults.push({
                    officialName: res.data.targetName,
                    source: 'FAILED',
@@ -92,7 +79,7 @@ export const VeracityHUD: React.FC<VeracityHUDProps> = ({ isOpen, onClose, enter
            setResults(finalResults);
            setStatus('success');
            setActiveLog(prev => [...prev, '[SYSTEM] 批量情报作业已全部完成。']);
-           setTrackedTaskIds([]); // 停止轮询
+           setTrackedTaskIds([]); 
         }
 
       } catch (err) {
@@ -114,18 +101,11 @@ export const VeracityHUD: React.FC<VeracityHUDProps> = ({ isOpen, onClose, enter
     setProgress({});
     
     try {
-      const token = localStorage.getItem('token');
-      // 调用新的批量接口
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/veracity/batch-hunt`, { names }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+      const res = await api.post('/veracity/batch-hunt', { names });
       const tasks = res.data;
       const ids = tasks.map((t: any) => t.id);
-      
       setTrackedTaskIds(ids);
       setActiveLog(prev => [...prev, '[SYSTEM] 任务已分发至云端计算节点，开始并行处理...']);
-      
     } catch (error) {
       console.error('Batch hunt start failed:', error);
       setActiveLog(prev => [...prev, `[ERROR] 批量任务提交失败`]);
@@ -134,7 +114,6 @@ export const VeracityHUD: React.FC<VeracityHUDProps> = ({ isOpen, onClose, enter
   };
 
   const exportToCSV = () => {
-    // 简单的 CSV 导出功能
     const headers = Object.keys(FIELD_LABELS).join(',');
     const rows = results.map(r => Object.keys(FIELD_LABELS).map(k => `"${r[k] || ''}"`).join(',')).join('\n');
     const csvContent = `data:text/csv;charset=utf-8,\ufeff${headers}\n${rows}`;
@@ -180,7 +159,6 @@ export const VeracityHUD: React.FC<VeracityHUDProps> = ({ isOpen, onClose, enter
         </div>
 
         <div className="flex-1 grid grid-cols-12 overflow-hidden">
-          {/* 左侧：控制台与日志 */}
           <div className="col-span-4 bg-gray-950 flex flex-col border-r border-gray-800">
              <div className="p-6 border-b border-gray-800 shrink-0">
                <label className="text-cyan-500 font-black text-xs uppercase mb-2 block tracking-widest">Target List (One per line)</label>
@@ -216,18 +194,10 @@ export const VeracityHUD: React.FC<VeracityHUDProps> = ({ isOpen, onClose, enter
                     {log}
                   </div>
                 ))}
-                <div ref={(el) => el?.scrollIntoView({ behavior: 'smooth' })} />
              </div>
           </div>
 
-          {/* 右侧：结果展示 */}
           <div className="col-span-8 bg-gray-50 flex flex-col relative overflow-hidden">
-            {status === 'idle' && (
-              <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
-                 <ShieldCheck size={300} />
-              </div>
-            )}
-            
             <div className="flex-1 overflow-y-auto p-8">
                {status === 'success' && results.length > 0 ? (
                  <div className="space-y-6">
@@ -241,7 +211,6 @@ export const VeracityHUD: React.FC<VeracityHUDProps> = ({ isOpen, onClose, enter
                     <div className="grid gap-6">
                        {results.map((item, idx) => (
                           <div key={idx} className="bg-white border-2 border-gray-900 p-0 shadow-[8px_8px_0_0_rgba(0,0,0,0.1)] hover:shadow-[8px_8px_0_0_rgba(0,0,0,0.2)] transition-shadow">
-                             {/* Card Header */}
                              <div className="bg-gray-100 border-b-2 border-gray-900 p-4 flex justify-between items-start">
                                 <div>
                                    <h4 className="font-bold text-lg text-gray-900">{item.officialName}</h4>
@@ -249,23 +218,9 @@ export const VeracityHUD: React.FC<VeracityHUDProps> = ({ isOpen, onClose, enter
                                       <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 font-mono border border-blue-200">
                                         USCC: {item.unifiedCode}
                                       </span>
-                                      {item.confidence && (
-                                        <div className="flex items-center gap-1">
-                                           <div className={`w-2 h-2 rounded-full ${item.confidence > 80 ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                                           <span className="text-[10px] font-bold text-gray-500">
-                                              可信度: {item.confidence}%
-                                           </span>
-                                        </div>
-                                      )}
                                    </div>
                                 </div>
-                                <div className="text-right">
-                                   <div className="text-[10px] font-black uppercase text-gray-400">DATA SOURCE</div>
-                                   <div className="text-xs font-bold text-blue-600">{item.source}</div>
-                                </div>
                              </div>
-                             
-                             {/* Card Body */}
                              <div className="p-4 grid grid-cols-2 gap-y-4 gap-x-8">
                                 <div className="space-y-4">
                                    <div>
@@ -275,10 +230,6 @@ export const VeracityHUD: React.FC<VeracityHUDProps> = ({ isOpen, onClose, enter
                                    <div>
                                       <label className="text-[10px] font-bold text-gray-400 uppercase block">注册资本</label>
                                       <div className="font-medium text-sm text-gray-900">{item.registeredCapital}</div>
-                                   </div>
-                                   <div>
-                                      <label className="text-[10px] font-bold text-gray-400 uppercase block">成立日期</label>
-                                      <div className="font-medium text-sm text-gray-900">{item.establishmentDate}</div>
                                    </div>
                                 </div>
                                 <div className="space-y-4">
@@ -292,23 +243,6 @@ export const VeracityHUD: React.FC<VeracityHUDProps> = ({ isOpen, onClose, enter
                                    </div>
                                 </div>
                              </div>
-
-                             {/* Card Footer (Evidence) */}
-                             {item.evidenceLinks && item.evidenceLinks.length > 0 && (
-                                <div className="bg-blue-50/50 p-3 border-t border-gray-100 flex flex-wrap gap-3">
-                                   <span className="text-[10px] font-bold text-blue-400 uppercase self-center flex items-center gap-1">
-                                      <LinkIcon size={10} /> 证据溯源:
-                                   </span>
-                                   {item.evidenceLinks.map((link: any, i: number) => (
-                                      <a 
-                                        key={i} href={link.url} target="_blank" rel="noopener noreferrer"
-                                        className="text-[10px] text-gray-500 hover:text-blue-600 hover:underline truncate max-w-[200px]"
-                                      >
-                                         [{i+1}] {link.url}
-                                      </a>
-                                   ))}
-                                </div>
-                             )}
                           </div>
                        ))}
                     </div>

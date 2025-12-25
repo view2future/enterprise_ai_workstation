@@ -65,6 +65,18 @@ export class CreateEnterpriseDto {
 
   @IsString()
   @IsOptional()
+  certStatus?: string;
+
+  @IsString()
+  @IsOptional()
+  shippingStatus?: string;
+
+  @IsString()
+  @IsOptional()
+  trackingNumber?: string;
+
+  @IsString()
+  @IsOptional()
   partnerLevel?: string;
 
   @IsString()
@@ -108,15 +120,23 @@ export class UpdateEnterpriseDto extends CreateEnterpriseDto {}
 export class EnterpriseFilterDto {
   @IsString()
   @IsOptional()
+  searchTerm?: string;
+
+  @IsString()
+  @IsOptional()
   keyword?: string;
+
+  @IsString()
+  @IsOptional()
+  region?: string;
 
   @IsString()
   @IsOptional()
   base?: string;
 
-  @IsEnum(ClueStage)
+  @IsString()
   @IsOptional()
-  clueStage?: ClueStage;
+  clueStage?: string;
 
   @IsString()
   @IsOptional()

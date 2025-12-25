@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, CheckCircle2, AlertTriangle, ChevronRight, Loader2 } from 'lucide-react';
-import axios from 'axios';
+import { Activity, Activity as ActivityIcon, ChevronRight } from 'lucide-react';
+import api from '../../services/api';
 
 export const TaskMonitor: React.FC = () => {
   const [activeTasks, setActiveTasks] = useState<any[]>([]);
@@ -9,14 +9,12 @@ export const TaskMonitor: React.FC = () => {
 
   const fetchTasks = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/veracity/tasks/active`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // 使用统一的 api 实例，自动带 Token 和 /api 前缀
+      const res = await api.get('/veracity/tasks/active');
       setActiveTasks(res.data);
-    } catch (e) {}
+    } catch (e) {
+      console.error('[TASK MONITOR] Fetch failed:', e);
+    }
   };
 
   // 轮询任务状态

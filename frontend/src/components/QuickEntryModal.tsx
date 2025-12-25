@@ -78,7 +78,7 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({ isOpen, onClos
                 </div>
                 <div>
                   <h3 className="text-2xl font-black uppercase italic tracking-tighter">智研闪录矩阵</h3>
-                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest leading-none mt-1">Intelligence Quick-Input Console v3.0</p>
+                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest leading-none mt-1">Intelligence Quick-Input Console v5.0</p>
                 </div>
               </div>
               <button onClick={onClose} className="p-2 hover:bg-red-600 transition-colors border-2 border-white">

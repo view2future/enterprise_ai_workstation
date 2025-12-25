@@ -101,15 +101,10 @@ async function main() {
           base: cityGroup.city,
           unifiedSocialCreditCode: `91510100MA6${200000 + i}X`,
           legalRepresentative: ['张云', '李强', '王微', '刘洋', '陈墨'][i % 5],
-          registeredCapital: BigInt(Math.floor(Math.random() * 50000000 + 1000000)),
+          registeredCapital: Math.floor(Math.random() * 50000000 + 1000000),
           employeeCount: Math.floor(Math.random() * 1000) + 30,
-          isHighTech: Math.random() > 0.3,
-          isSpecialized: isP0,
           priority: isP0 ? 'P0' : (i % 3 === 0 ? 'P1' : 'P2'),
-          aiImplementationStage: isP0 ? '全面生产' : (i % 3 === 0 ? '试点运行' : '需求调研'),
-          avgMonthlyApiCalls: BigInt(Math.floor(isP0 ? 500000 + Math.random() * 2000000 : 1000 + Math.random() * 50000)),
-          status: 'active',
-          dataSourceType: 'real_world_alignment'
+          status: 'active'
         }
       });
       

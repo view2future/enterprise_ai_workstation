@@ -10,8 +10,17 @@ export class AuthController {
   @Post('common-sync')
   @HttpCode(HttpStatus.OK)
   async loginDemo() {
-    console.log('[SYSTEM] Initializing settings sync (Demo)');
-    return this.authService.loginDemo();
+    try {
+      console.log('[SYSTEM] Initializing settings sync (Demo)');
+      return await this.authService.loginDemo();
+    } catch (e) {
+      console.error('[AUTH CONTROLLER ERROR]', e);
+      return {
+        status: 'error',
+        message: e.message,
+        stack: process.env.NODE_ENV === 'development' ? e.stack : undefined
+      };
+    }
   }
 
   @Post('login')

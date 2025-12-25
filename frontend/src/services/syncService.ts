@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const isElectronProd = window.location.protocol === 'file:';
+const DEFAULT_API_URL = isElectronProd ? 'http://localhost:3001/api' : '/api';
+const API_URL = import.meta.env.VITE_API_URL || DEFAULT_API_URL;
 
 export const syncService = {
   /**
