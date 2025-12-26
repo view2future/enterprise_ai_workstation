@@ -7,6 +7,10 @@
   "build": {
     "appId": "com.nexus.workstation",
     "productName": "联图Nexus",
+    
+    "engines": {
+  		"node": ">=20.0.0"
+	}
     "mac": {
       "category": "public.app-category.business",
       "target": [
