@@ -1,5 +1,5 @@
 # --- 阶段 1: 构建前端 ---
-FROM node:18-alpine AS frontend-builder
+FROM node:20-slim AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm install
@@ -7,7 +7,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # --- 阶段 2: 构建后端 ---
-FROM node:18-alpine AS backend-builder
+FROM node:20-slim AS backend-builder
 WORKDIR /app/backend
 COPY backend/package*.json ./
 RUN npm install
@@ -16,7 +16,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # --- 阶段 3: 生产环境镜像 ---
-FROM node:18-alpine AS runner
+FROM node:20-slim AS runner
 WORKDIR /app
 RUN apk add --no-cache openssl
 
