@@ -60,11 +60,6 @@ const MainApp: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
-  // 如果已认证且在根路径，重定向到仪表板
-  if (isAuthenticated && location.pathname === '/') {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   return (
     <Routes>
       <Route 
@@ -73,7 +68,7 @@ const MainApp: React.FC = () => {
       />
       <Route 
         path="/landing" 
-        element={<Navigate to="/" replace />} 
+        element={<LandingPage />} 
       />
       <Route 
         path="/login" 
